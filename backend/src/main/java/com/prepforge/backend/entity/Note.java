@@ -20,4 +20,14 @@ public class Note {
 
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    private String difficulty;
+    private Integer readTime;
+
+    @Column(name = "pdf_file_name")
+    private String pdfFileName;
+
+    @Column(name = "file_name")
+    private String fileName;
+    private String fileType; // PDF or CSV
 }

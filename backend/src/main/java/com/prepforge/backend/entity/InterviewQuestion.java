@@ -1,5 +1,4 @@
 package com.prepforge.backend.entity;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,10 +14,14 @@ public class InterviewQuestion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String category; // HR, Java, React, SQL
-
+    private String category;
     private String question;
 
     @Column(columnDefinition = "TEXT")
     private String answer;
+
+    private String difficulty;
+    private String companyTag;
+    private Boolean isFavorite = false;
+    private Boolean frequentlyAsked = false; // ADD THIS
 }

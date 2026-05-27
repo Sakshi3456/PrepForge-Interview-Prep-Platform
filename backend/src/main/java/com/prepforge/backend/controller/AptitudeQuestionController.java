@@ -25,9 +25,30 @@ public class AptitudeQuestionController {
         return service.add(question);
     }
 
+    @PutMapping("/{id}")
+    public AptitudeQuestion update(
+            @PathVariable Long id,
+            @RequestBody AptitudeQuestion updated) {
+        return service.update(id, updated);
+    }
+
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Long id) {
         service.delete(id);
         return "Deleted Successfully";
+    }
+
+    @GetMapping("/filter")
+    public List<AptitudeQuestion> filter(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String difficulty) {
+        return service.filter(category, difficulty);
+    }
+
+    @GetMapping("/quiz")
+    public List<AptitudeQuestion> getQuiz(
+            @RequestParam(required = false) String category,
+            @RequestParam(defaultValue = "10") int count) {
+        return service.getRandomQuiz(category, count);
     }
 }

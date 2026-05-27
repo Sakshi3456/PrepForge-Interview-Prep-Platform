@@ -44,18 +44,40 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/notes", "/api/notes/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/questions", "/api/questions/**").permitAll()
 
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 🔥 FIXED ORDER
+                        .requestMatchers("/api/notes/pdf/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/notes/**").permitAll()
+                        .requestMatchers("/api/notes/file/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/questions/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/aptitude/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/coding/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/quiz/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/mcq/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/mcq-sessions/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/mock/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/profile/**"  ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET,  "/api/progress/**" ).permitAll()
+
+                        .requestMatchers("/api/bookmarks/**").authenticated()
+
+                        .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                        .requestMatchers("/api/notes/upload-pdf").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.POST, "/api/notes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/notes/**").hasRole("ADMIN")
 
                         .requestMatchers(HttpMethod.POST, "/api/questions/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/questions/**").hasRole("ADMIN")
-
-                        .requestMatchers(HttpMethod.GET, "/api/aptitude", "/api/aptitude/**").permitAll()
 
                         .requestMatchers(HttpMethod.POST, "/api/aptitude/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/aptitude/**").hasRole("ADMIN")

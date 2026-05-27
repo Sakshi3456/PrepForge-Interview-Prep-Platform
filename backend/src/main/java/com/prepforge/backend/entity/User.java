@@ -23,4 +23,10 @@ public class User {
     private String password;
 
     private String role = "USER";
+
+    private String targetRole;  // Java Developer, Full Stack etc
+    private String college;     // college name
+    private String bio;         // short bio
+    private String linkedinUrl; // linkedin profile
+    private String githubUrl;
 }

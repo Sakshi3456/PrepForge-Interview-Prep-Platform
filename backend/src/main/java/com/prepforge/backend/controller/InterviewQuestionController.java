@@ -30,4 +30,35 @@ public class InterviewQuestionController {
         service.delete(id);
         return "Deleted Successfully";
     }
+
+    @PutMapping("/{id}")
+    public InterviewQuestion update(
+            @PathVariable Long id,
+            @RequestBody InterviewQuestion updated
+    ) {
+        return service.update(id, updated);
+    }
+
+    @GetMapping("/filter")
+    public List<InterviewQuestion> filter(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String difficulty
+    ) {
+        return service.filter(category, difficulty);
+    }
+
+    @GetMapping("/search")
+    public List<InterviewQuestion> search(@RequestParam String keyword) {
+        return service.search(keyword);
+    }
+
+    @GetMapping("/random")
+    public InterviewQuestion random(@RequestParam(required = false) String category) {
+        return service.getRandom(category);
+    }
+
+    @PutMapping("/{id}/favorite")
+    public InterviewQuestion toggleFavorite(@PathVariable Long id) {
+        return service.toggleFavorite(id);
+    }
 }
