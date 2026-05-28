@@ -1,17 +1,22 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { 
+  Home, BookOpen, MessageSquare, Award, FileText, 
+  Terminal, Video, Bookmark, BarChart3, User, LogOut,
+  ChevronLeft, ChevronRight
+} from "lucide-react";
 
+// Modern unified technical metadata configuration array
 const navItems = [
-  { icon: "🏠", label: "Dashboard",          path: "/dashboard"  },
-  { icon: "📚", label: "Notes",              path: "/notes"      },
-  { icon: "🎤", label: "Interview Questions", path: "/questions"  },
-  { icon: "🧮", label: "Aptitude Quiz",       path: "/quiz"       },
-  { icon: "📝", label: "Technical MCQ",       path: "/mcq"        },
-  { icon: "💻", label: "Coding Practice",     path: "/coding"     },
-  { icon: "🎯", label: "Mock Interview",      path: "/mock"       },
-  { icon: "⭐", label: "Bookmarks",           path: "/bookmarks"  },
-  { icon: "📊", label: "Progress",            path: "/progress"   },
-  { icon: "👤", label: "Profile",             path: "/profile"    },
+  { icon: <Home size={18} />, label: "Dashboard", path: "/dashboard" },
+  { icon: <BookOpen size={18} />, label: "Notes", path: "/notes" },
+  { icon: <MessageSquare size={18} />, label: "Interview Questions", path: "/questions" },
+  { icon: <Award size={18} />, label: "Aptitude Quiz", path: "/quiz" },
+  { icon: <FileText size={18} />, label: "Technical MCQ", path: "/mcq" },
+  { icon: <Terminal size={18} />, label: "Coding Practice", path: "/coding" },
+  { icon: <Video size={18} />, label: "Mock Interview", path: "/mock" },
+  { icon: <Bookmark size={18} />, label: "Bookmarks", path: "/bookmarks" },
+  { icon: <BarChart3 size={18} />, label: "Progress", path: "/progress" },
+  { icon: <User size={18} />, label: "Profile", path: "/profile" },
 ];
 
 function Sidebar({ isOpen, setIsOpen }) {
@@ -24,69 +29,64 @@ function Sidebar({ isOpen, setIsOpen }) {
   };
 
   return (
-    <aside className={`
-      ${isOpen ? "w-[240px]" : "w-[72px]"}
-      transition-all duration-300
-      h-screen sticky top-0 shrink-0
-      bg-[#070b1d]
-      border-r border-white/5
-      flex flex-col overflow-hidden
-      z-40
-    `}>
+    <aside 
+      className={`
+        ${isOpen ? "w-[260px]" : "w-[78px]"}
+        transition-all duration-300 ease-in-out
+        h-screen sticky top-0 shrink-0
+        bg-[#090d23] border-r border-white/5
+        flex flex-col overflow-hidden z-40 select-none
+      `}
+    >
+      {/* Premium Ambient Background Glow Vectors */}
+      <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 blur-[100px] pointer-events-none" />
+            <div className="absolute bottom-0 right-0 w-60 h-60 bg-purple-500/10 blur-[100px] pointer-events-none" />
 
-      {/* Background glows */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-500/10 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-60 h-60 bg-violet-500/10 blur-3xl pointer-events-none" />
-
-      {/* ── TOP: Logo + Toggle ── */}
-      <div className="relative z-10 px-3 pt-4 pb-4 border-b border-white/5 flex items-center justify-between gap-2">
-
-        {/* Logo — hidden when collapsed */}
-        {isOpen && (
-          <Link to="/dashboard" className="flex items-center gap-2.5 min-w-0">
-            <div className="relative shrink-0">
-              <div className="absolute inset-0 bg-violet-500 blur-xl opacity-30 rounded-xl" />
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg text-base">
-                ⚒️
-              </div>
+        {/* ── HEADER: BRANDING AREA ── */}
+    <div className="relative z-10 h-20 px-4 border-b border-white/5 flex items-center justify-between gap-2">
+      
+      {/* 1. BRANDING LOGO: Wrapped in its own container so its hitbox cannot grow past its width */}
+      <div className={`transition-all duration-200 ${isOpen ? "w-auto flex-1" : "w-10"}`}>
+        <Link to="/dashboard" className="flex items-center gap-3 min-w-0 w-fit">
+          <div className="relative shrink-0">
+            <div className="absolute inset-0 bg-indigo-500 blur-md opacity-40 rounded-xl" />
+            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-950/50">
+              <Terminal size={20} className="text-white" />
             </div>
-            <div className="leading-tight min-w-0">
+          </div>
+          
+          {isOpen && (
+            <div className="leading-tight min-w-0 transition-opacity duration-200 animate-in fade-in duration-300">
               <h2 className="text-[15px] font-bold text-white tracking-tight truncate">
                 PrepForge
               </h2>
-              <p className="text-[11px] text-slate-400">
-                Placement Platform
+              <p className="text-[11px] text-slate-400 font-medium">
+                Placement Suite
               </p>
             </div>
-          </Link>
-        )}
-
-        {/* Collapsed logo */}
-        {!isOpen && (
-          <Link to="/dashboard" className="mx-auto">
-            <div className="relative">
-              <div className="absolute inset-0 bg-violet-500 blur-xl opacity-30 rounded-xl" />
-              <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-base shadow-lg">
-                ⚒️
-              </div>
-            </div>
-          </Link>
-        )}
-
-        {/* Toggle button */}
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          title={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-          aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
-          className="shrink-0 w-8 h-8 rounded-xl bg-white/[0.05] hover:bg-white/[0.10] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200"
-        >
-          {isOpen ? "←" : "→"}
-        </button>
+          )}
+        </Link>
       </div>
 
-      {/* ── NAV LINKS ── */}
-      <nav className="relative z-10 flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {navItems.map(item => {
+      {/* 2. ISOLATED TOGGLE BUTTON: Explicitly stops event propagation from hitting the parent link container */}
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation(); // <-- CRITICAL: Stops the browser from triggering background Link clicks!
+          setIsOpen(!isOpen);
+        }}
+        title={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+        aria-label={isOpen ? "Collapse sidebar" : "Expand sidebar"}
+        className="w-8 h-8 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all duration-200 shrink-0 relative z-50"
+      >
+        {isOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+      </button>
+
+    </div>
+
+      {/* ── BODY: NAVIGATION RUNTIME LINKS ── */}
+      <nav className="relative z-10 flex-1 overflow-y-auto px-3 py-6 space-y-1 custom-scrollbar">
+        {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
@@ -95,97 +95,84 @@ function Sidebar({ isOpen, setIsOpen }) {
               title={!isOpen ? item.label : undefined}
               aria-label={item.label}
               className={`
-                group relative flex items-center gap-3
-                ${isOpen ? "px-3 py-2.5" : "justify-center px-0 py-2.5"}
-                rounded-xl transition-all duration-200
+                group relative flex items-center gap-3.5 py-3 rounded-xl transition-all duration-200
+                ${isOpen ? "px-4" : "justify-center px-0"}
                 ${isActive
-                  ? "bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-400/20"
-                  : "hover:bg-white/[0.05] border border-transparent"
+                  ? "bg-gradient-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/30 text-white shadow-inner"
+                  : "hover:bg-white/[0.04] text-slate-400 hover:text-slate-100 border border-transparent"
                 }
               `}
             >
-              {/* Active indicator bar */}
+              {/* Left Active Visual Bar Indicator */}
               {isActive && (
-                <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-gradient-to-b from-indigo-400 to-violet-500" />
+                <div className="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-full bg-gradient-to-b from-indigo-400 to-purple-500 shadow-lg shadow-indigo-500" />
               )}
 
-              {/* Icon */}
-              <div className={`
-                w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[18px]
-                transition-all duration-200
-                ${isActive
-                  ? "bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md"
-                  : "bg-white/[0.04] group-hover:bg-white/[0.08]"
-                }
-              `}>
+              {/* Wrapped Monochromatic Icon Box */}
+              <div 
+                className={`
+                  shrink-0 transition-all duration-200
+                  ${isActive ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-200"}
+                `}
+              >
                 {item.icon}
               </div>
 
-              {/* Label — only when expanded */}
+              {/* Cleaned Dynamic Text Label Mapping Area */}
               {isOpen && (
-                <div className="min-w-0 flex-1">
-                  <p className={`text-[13px] font-medium leading-none truncate ${
-                    isActive ? "text-white" : "text-slate-300 group-hover:text-white"
-                  }`}>
-                    {item.label}
-                  </p>
-                  {/* ── FIX: sub-label 12px ── */}
-                  <p className="text-[12px] text-slate-500 mt-1">
-                    Continue →
-                  </p>
-                </div>
+                <span className={`text-[13px] font-medium tracking-wide truncate transition-all duration-200
+                  ${isActive ? "text-white font-semibold" : "text-slate-300 group-hover:text-white"}`}>
+                  {item.label}
+                </span>
               )}
             </Link>
           );
         })}
       </nav>
 
-      {/* ── BOTTOM: Daily Goal + Logout ── */}
-      <div className="relative z-10 p-2 border-t border-white/5 space-y-2">
-
-        {/* Daily Goal — only when expanded */}
+      {/* ── FOOTER: ENGAGEMENT & SYSTEM CONTROL ── */}
+      <div className="relative z-10 p-3 border-t border-white/5 space-y-2 bg-[#06091a]">
+        
+        {/* Daily Progress Module Container */}
         {isOpen && (
-          <div className="rounded-xl bg-gradient-to-br from-indigo-500/10 to-violet-500/10 border border-white/5 px-4 py-3">
+          <div className="rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-white/[0.04] p-3.5">
             <div className="flex items-center justify-between mb-2">
               <div>
-                {/* ── FIX: label 12px tracking 0.10em ── */}
-                <p className="text-[12px] uppercase tracking-[0.10em] text-slate-400 font-medium">
+                <p className="text-[11px] uppercase tracking-widest text-slate-500 font-bold">
                   Daily Goal
                 </p>
-                <h3 className="text-[13px] font-bold text-white mt-0.5">
-                  6/10 Completed
+                <h3 className="text-xs font-bold text-slate-200 mt-0.5">
+                  6 of 10 Cleared
                 </h3>
               </div>
-              <span className="text-2xl">🔥</span>
+              <span className="text-lg filter drop-shadow-[0_2px_8px_rgba(249,115,22,0.4)]">🔥</span>
             </div>
-            {/* ── FIX: brighter progress bar fill ── */}
-            <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full w-[60%] rounded-full bg-white/80" />
+            
+            {/* Cleaner, High-Contrast Sleek Micro Progress Bar Meter */}
+            <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="h-full w-[60%] rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md shadow-indigo-500/50" />
             </div>
           </div>
         )}
 
-        {/* Logout */}
+        {/* Hardened System Destruction Session Action Button */}
         <button
           onClick={handleLogout}
           aria-label="Logout"
           title="Logout"
           className={`
-            w-full flex items-center gap-3
-            ${isOpen ? "px-3 py-2.5" : "justify-center py-2.5"}
-            rounded-xl
-            bg-rose-500/[0.08] hover:bg-rose-500/[0.15]
-            border border-rose-500/10
-            transition-all duration-200 group
+            w-full flex items-center gap-3.5 rounded-xl transition-all duration-200 group
+            bg-rose-500/[0.04] hover:bg-rose-500/[0.10] border border-rose-500/10
+            ${isOpen ? "px-4 py-3" : "justify-center py-3"}
           `}
         >
-          <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center shrink-0 text-[18px]">
-            🚪
-          </div>
+          <LogOut size={16} className="text-rose-400 group-hover:text-rose-300 shrink-0 transition-transform group-hover:-translate-x-0.5" />
+          
           {isOpen && (
-            <div className="text-left">
-              <p className="text-[13px] font-semibold text-rose-300 leading-none">Logout</p>
-              <p className="text-[12px] text-rose-400/70 mt-1">End session</p>
+            <div className="text-left leading-none">
+              <p className="text-[13px] font-semibold text-rose-400 group-hover:text-rose-300">
+                Logout Session
+              </p>
             </div>
           )}
         </button>

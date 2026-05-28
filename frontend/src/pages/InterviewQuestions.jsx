@@ -1,38 +1,59 @@
 import { useEffect, useState } from "react";
+import { 
+  MessageSquare, Search, Filter, Shuffle, HelpCircle, 
+  Flame, CheckCircle2, Bookmark, X, ChevronDown, ChevronUp 
+} from "lucide-react";
 import api from "../services/api";
-import Navbar from "../components/Navbar";
 
 const categoryIcons = {
-  HR: "🤝", Java: "☕", React: "⚛️", Python: "🐍",
-  DSA: "🌲", "System Design": "🏗️", DBMS: "🗄️",
-  OS: "💻", "Spring Boot": "🍃",
+  HR: <HelpCircle size={16} />,
+  Java: <MessageSquare size={16} />,
+  React: <MessageSquare size={16} />,
+  Python: <MessageSquare size={16} />,
+  DSA: <MessageSquare size={16} />,
+  "System Design": <MessageSquare size={16} />,
+  DBMS: <MessageSquare size={16} />,
+  OS: <MessageSquare size={16} />,
+  "Spring Boot": <MessageSquare size={16} />,
 };
 
 const difficultyConfig = {
-  Easy:   { color: "text-emerald-600", bg: "bg-emerald-50", dot: "bg-emerald-400" },
-  Medium: { color: "text-amber-600",   bg: "bg-amber-50",   dot: "bg-amber-400"   },
-  Hard:   { color: "text-rose-600",    bg: "bg-rose-50",    dot: "bg-rose-400"    },
+  Easy:   { color: "text-emerald-600 bg-emerald-50 border-emerald-100", dot: "bg-emerald-500" },
+  Medium: { color: "text-amber-600 bg-amber-50 border-amber-100",   dot: "bg-amber-500" },
+  Hard:   { color: "text-rose-600 bg-rose-50 border-rose-100",       dot: "bg-rose-500" },
 };
 
 function InterviewQuestions() {
-  const [questions, setQuestions]   = useState([]);
-  const [search, setSearch]         = useState("");
-  const [category, setCategory]     = useState("All");
+  const [questions, setQuestions] = useState([]);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
   const [difficulty, setDifficulty] = useState("All");
-  const [openId, setOpenId]         = useState(null);
-  const [assessment, setAssessment] = useState({});
-  const [loading, setLoading]       = useState(true);
-  const [random, setRandom]         = useState(null);
+  const [openId, setOpenId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [randomQuestion, setRandomQuestion] = useState(null);
 
-  useEffect(() => { fetchQuestions(); }, []);
+  // Persistent storage pattern for mock progress assessments
+  const [assessment, setAssessment] = useState(() => {
+    const saved = localStorage.getItem("prepforge_self_assessments");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    fetchQuestions();
+  }, []);
+
+  // Synchronize state mutations to local persistent storage blocks
+  useEffect(() => {
+    localStorage.setItem("prepforge_self_assessments", JSON.stringify(assessment));
+  }, [assessment]);
 
   const fetchQuestions = async () => {
     setLoading(true);
     try {
       const res = await api.get("/questions");
       setQuestions(res.data);
-    } catch {
-      console.error("Error fetching questions");
+    } catch (err) {
+      console.error("Failed to load interview item indexes", err);
     } finally {
       setLoading(false);
     }
@@ -40,237 +61,324 @@ function InterviewQuestions() {
 
   const categories = ["All", ...new Set(questions.map((q) => q.category))];
 
-  // ✅ BUG FIX — matchDifficulty now inside filter
+  // Coordinated evaluation array matching all configuration elements
   const filteredQuestions = questions.filter((q) => {
-    const matchSearch     = q.question.toLowerCase().includes(search.toLowerCase());
-    const matchCategory   = category === "All" || q.category === category;
+    const matchSearch = q.question.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = category === "All" || q.category === category;
     const matchDifficulty = difficulty === "All" || q.difficulty === difficulty;
     return matchSearch && matchCategory && matchDifficulty;
   });
 
-  const pickRandom = () => {
-    const pool = category === "All"
-      ? questions
-      : questions.filter(q => q.category === category);
-    if (pool.length === 0) return;
-    setRandom(pool[Math.floor(Math.random() * pool.length)]);
+  // Hardened randomized selector matching precise active filters
+  const pickRandomIntegratedQuestion = () => {
+    if (filteredQuestions.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
+    setRandomQuestion(filteredQuestions[randomIndex]);
+  };
+
+  const commitSelfAssessmentState = (questionId, stateValue) => {
+    setAssessment(prev => ({
+      ...prev,
+      [questionId]: stateValue
+    }));
+  };
+
+  const stats = {
+    total:  questions.length,
+    easy:   questions.filter(q => q.difficulty === "Easy").length,
+    medium: questions.filter(q => q.difficulty === "Medium").length,
+    hard:   questions.filter(q => q.difficulty === "Hard").length,
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
+    <div className="space-y-8 pb-16 max-w-[1400px] mx-auto relative">
+      
+      {/* ── TOP SECTION: BRANDED CORE OVERLAY HERO ── */}
+      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0c0f2b] via-[#161a46] to-[#261b55] p-8 shadow-md">
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 blur-[80px] pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-purple-500/10 blur-[80px] pointer-events-none" />
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 px-8 pt-10 pb-16">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🎤</span>
-            <div>
-              <p className="text-blue-300 text-xs font-semibold tracking-widest uppercase">PrepForge</p>
-              <h1 className="text-3xl font-black text-white">Interview Questions</h1>
-            </div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase">
+              PrepForge Verification Matrix
+            </span>
+            <h1 className="text-3xl font-black text-white tracking-tight mt-1">Interview Questions</h1>
+            <p className="text-slate-300 text-sm mt-2 max-w-md font-medium leading-relaxed">
+              Master HR vetting workflows, runtime algorithmic complexities, and system design patterns curated by engineering leads.
+            </p>
           </div>
-          <p className="text-blue-300 text-sm mt-2">
-            HR, technical and DSA questions with answers. Practice and self-assess.
-          </p>
 
-          {/* Stats */}
-          <div className="flex gap-4 mt-6 flex-wrap">
+          <div className="flex gap-3 flex-wrap shrink-0">
             {[
-              { label: "Total",  value: questions.length,                                        color: "bg-white/10 text-white"             },
-              { label: "Easy",   value: questions.filter(q => q.difficulty === "Easy").length,   color: "bg-emerald-500/20 text-emerald-300" },
-              { label: "Medium", value: questions.filter(q => q.difficulty === "Medium").length, color: "bg-amber-500/20 text-amber-300"     },
-              { label: "Hard",   value: questions.filter(q => q.difficulty === "Hard").length,   color: "bg-rose-500/20 text-rose-300"       },
-            ].map(s => (
-              <div key={s.label} className={`${s.color} rounded-xl px-4 py-2 text-center min-w-[80px]`}>
-                <p className="text-xl font-black">{s.value}</p>
-                <p className="text-[11px] font-medium opacity-80">{s.label}</p>
+              { label: "Total Pool",  value: stats.total,  border: "border-white/10 text-white bg-white/[0.04]" },
+              { label: "Easy Track",  value: stats.easy,  border: "border-emerald-500/20 text-emerald-400 bg-emerald-500/5" },
+              { label: "Medium Core", value: stats.medium, border: "border-amber-500/20 text-amber-400 bg-amber-500/5" },
+              { label: "Hard Domain", value: stats.hard,   border: "border-rose-500/20 text-rose-400 bg-rose-500/5" },
+            ].map((s, i) => (
+              <div key={i} className={`border rounded-xl px-4 py-2.5 text-center min-w-[90px] shadow-sm backdrop-blur-sm ${s.border}`}>
+                <p className="text-lg font-black tracking-tight leading-none">{loading ? "—" : s.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mt-1.5">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Search + Filters */}
-      <div className="max-w-5xl mx-auto px-8 -mt-6">
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-4 flex flex-col md:flex-row gap-3">
+      {/* ── CENTRAL CONTROL DASHBOARD MANAGEMENT PANEL ── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col lg:flex-row gap-3 items-center">
+        <div className="relative flex-1 w-full">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Search questions by key concepts..."
+            className="w-full pl-10 pr-4 py-2.5 text-xs font-medium bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+          />
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
           <div className="relative flex-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" placeholder="Search questions..."
-              className="w-full pl-9 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-              value={search} onChange={e => setSearch(e.target.value)} />
+            <select 
+              className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none pr-8 min-w-[140px]"
+              value={category} 
+              onChange={e => setCategory(e.target.value)}
+            >
+              {categories.map((cat, i) => <option key={i} value={cat}>Category: {cat}</option>)}
+            </select>
+            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
-          <select className="px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-            value={category} onChange={e => setCategory(e.target.value)}>
-            {categories.map((cat, i) => <option key={i}>{cat}</option>)}
-          </select>
-          <select className="px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
-            value={difficulty} onChange={e => setDifficulty(e.target.value)}>
-            {["All","Easy","Medium","Hard"].map(d => <option key={d}>{d}</option>)}
-          </select>
-          <button onClick={pickRandom}
-            className="px-4 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition whitespace-nowrap">
-            🎲 Random
+
+          <div className="relative flex-1">
+            <select 
+              className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none pr-8 min-w-[130px]"
+              value={difficulty} 
+              onChange={e => setDifficulty(e.target.value)}
+            >
+              {["All","Easy","Medium","Hard"].map(d => <option key={d} value={d}>Complexity: {d}</option>)}
+            </select>
+            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+
+          <button 
+            onClick={pickRandomIntegratedQuestion}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-sm shadow-indigo-100"
+          >
+            <Shuffle size={14} />
+            <span>Random Selector</span>
           </button>
         </div>
       </div>
 
-      {/* Category Pills */}
-      <div className="max-w-5xl mx-auto px-8 mt-5 flex gap-2 flex-wrap">
+      {/* HORIZONTAL INTERACTIVE CATEGORY PILLS BAR */}
+      <div className="flex gap-1.5 flex-wrap items-center">
         {categories.map(cat => (
-          <button key={cat} onClick={() => setCategory(cat)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition ${
+          <button 
+            key={cat} 
+            onClick={() => setCategory(cat)}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all duration-150 ${
               category === cat
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-500 border border-slate-200 hover:border-blue-300"
-            }`}>
-            {categoryIcons[cat] || ""} {cat}
+                ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
+                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+            }`}
+          >
+            {cat}
           </button>
         ))}
       </div>
 
-      {/* Results count + clear */}
-      <div className="max-w-5xl mx-auto px-8 mt-5 mb-4 flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          Showing <span className="font-semibold text-slate-700">{filteredQuestions.length}</span> of {questions.length} questions
+      {/* CONTEXT RUNTIME COUNT LOGS CARD */}
+      <div className="flex items-center justify-between px-1">
+        <p className="text-xs font-medium text-slate-400">
+          Showing <span className="font-bold text-slate-700">{filteredQuestions.length}</span> of {questions.length} questions
         </p>
         {(search || category !== "All" || difficulty !== "All") && (
-          <button onClick={() => { setSearch(""); setCategory("All"); setDifficulty("All"); }}
-            className="text-xs text-slate-400 hover:text-slate-700 transition">
-            ✕ Clear filters
+          <button 
+            onClick={() => { setSearch(""); setCategory("All"); setDifficulty("All"); }}
+            className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors focus:outline-none"
+          >
+            ✕ Clear Global Filters
           </button>
         )}
       </div>
 
-      {/* Random Modal */}
-      {random && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-bold text-blue-600">🎲 Random Question</span>
-              <button onClick={() => setRandom(null)} className="text-slate-400 hover:text-slate-700">✕</button>
-            </div>
-            <p className="text-[11px] text-slate-400 uppercase font-semibold tracking-wider mb-2">{random.category}</p>
-            <h3 className="text-base font-bold text-slate-800 mb-4">{random.question}</h3>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <p className="text-sm text-slate-600 leading-relaxed">{random.answer}</p>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button onClick={pickRandom}
-                className="flex-1 py-2.5 text-sm font-semibold bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition">
-                🎲 Another One
+      {/* ── OVERLAY DIALOG SYSTEM: RANDOM INTERACTIVE MODAL ── */}
+      {randomQuestion && (
+        <div className="fixed inset-0 bg-[#020617]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl border border-slate-100 animate-in scale-in duration-200 flex flex-col space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <span className="text-xs font-black uppercase tracking-widest text-indigo-600 inline-flex items-center gap-1.5">
+                <Shuffle size={14} /> Random Selection Evaluation
+              </span>
+              <button onClick={() => setRandomQuestion(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+                <X size={16} />
               </button>
-              <button onClick={() => setRandom(null)}
-                className="flex-1 py-2.5 text-sm font-semibold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition">
-                Close
+            </div>
+            
+            <div>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
+                {randomQuestion.category}
+              </span>
+              <h3 className="text-base font-bold text-slate-800 mt-2 tracking-tight leading-snug">
+                {randomQuestion.question}
+              </h3>
+            </div>
+
+            <div className="bg-slate-50/80 border border-slate-200/50 rounded-xl p-4 max-h-[240px] overflow-y-auto">
+              <p className="text-xs font-medium text-slate-600 leading-relaxed">{randomQuestion.answer}</p>
+            </div>
+
+            <div className="flex gap-2.5 pt-2">
+              <button 
+                onClick={pickRandomIntegratedQuestion}
+                className="flex-1 py-2.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-colors"
+              >
+                Draw Alternating Node
+              </button>
+              <button 
+                onClick={() => setRandomQuestion(null)}
+                className="flex-1 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+              >
+                Dismiss Canvas
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Questions List */}
-      <div className="max-w-5xl mx-auto px-8 pb-16 space-y-3">
+      {/* ── CORE RUNTIME ARCHITECTURE QUESTION SET LIST ── */}
+      <section className="space-y-3">
         {loading ? (
           [...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-              <div className="h-3 bg-slate-100 rounded w-1/4 mb-3" />
-              <div className="h-4 bg-slate-100 rounded w-3/4" />
+            <div key={i} className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-3 animate-pulse">
+              <div className="h-3 bg-slate-100 rounded w-1/5" />
+              <div className="h-5 bg-slate-100 rounded w-4/5" />
             </div>
           ))
         ) : filteredQuestions.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="text-5xl mb-4">🔍</p>
-            <p className="text-slate-500 font-medium">No questions found</p>
-            <p className="text-sm text-slate-400 mt-1">Try adjusting your filters</p>
+          <div className="text-center py-20 border-2 border-dashed border-slate-200/60 rounded-2xl bg-white p-8">
+            <Search size={32} className="mx-auto text-slate-300 mb-3" />
+            <h3 className="text-sm font-bold text-slate-700">No matching questions encountered</h3>
+            <p className="text-xs text-slate-400 mt-1 font-medium">Readjust global dropdown configuration layers or clear character arrays.</p>
           </div>
         ) : (
           filteredQuestions.map((q) => {
-            const diff  = difficultyConfig[q.difficulty] || difficultyConfig.Easy;
+            const diff = difficultyConfig[q.difficulty] || difficultyConfig.Easy;
             const isOpen = openId === q.id;
-            return (
-              <div key={q.id}
-                className={`bg-white rounded-2xl border transition-all duration-200 ${
-                  isOpen ? "border-indigo-200 shadow-lg" : "border-slate-100 hover:shadow-md"
-                }`}>
-                <div className="p-5">
+            const userAssessment = assessment[q.id];
 
-                  {/* Header */}
-                  <div className="flex items-start gap-3 mb-2">
-                    <span className="text-xl shrink-0 mt-0.5">{categoryIcons[q.category] || "❓"}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <p className="text-[11px] font-semibold tracking-wider uppercase text-slate-400">{q.category}</p>
+            return (
+              <div 
+                key={q.id}
+                className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                  isOpen ? "border-indigo-200 shadow-md shadow-slate-100" : "border-slate-200/60 hover:border-slate-300 hover:shadow-sm"
+                }`}
+              >
+                <div className="p-5 md:p-6 space-y-4">
+                  
+                  {/* COMPONENT LAYOUT META WRAPPER HEADER */}
+                  <div className="flex items-start gap-4">
+                    <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
+                      {categoryIcons[q.category] || <HelpCircle size={16} />}
+                    </div>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
+                          {q.category}
+                        </span>
                         {q.frequentlyAsked && (
-                          <span className="text-[10px] font-semibold bg-rose-50 text-rose-500 border border-rose-100 px-2 py-0.5 rounded-full">
-                            🔥 Frequent
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 border border-rose-100 text-rose-500 px-2 py-0.5 rounded-full">
+                            <Flame size={10} />
+                            <span>High Frequency</span>
                           </span>
                         )}
                       </div>
-                      <h2 className="text-sm font-bold text-slate-800">{q.question}</h2>
+                      <h2 className="text-sm font-bold text-slate-800 tracking-tight leading-snug">
+                        {q.question}
+                      </h2>
                     </div>
                   </div>
 
-                  {/* Badges */}
-                  <div className="flex items-center gap-2 flex-wrap mb-3 pl-8">
+                  {/* SUBMETRICS BADGE ALLOCATION STRIP */}
+                  <div className="flex items-center gap-2 flex-wrap pl-13">
                     {q.difficulty && (
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff.bg} ${diff.color}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />{q.difficulty}
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 border rounded-md ${diff.color}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />
+                        {q.difficulty}
                       </span>
                     )}
                     {q.companyTag && q.companyTag.split(",").map(tag => (
-                      <span key={tag} className="text-[11px] bg-slate-50 text-slate-400 border border-slate-100 px-2.5 py-1 rounded-full">
+                      <span key={tag} className="text-[11px] font-medium bg-slate-50 text-slate-400 border border-slate-200/40 px-2.5 py-1 rounded-md">
                         {tag.trim()}
                       </span>
                     ))}
                   </div>
 
-                  {/* Toggle */}
-                  <button onClick={() => setOpenId(isOpen ? null : q.id)}
-                    className="ml-8 text-xs font-semibold text-blue-500 hover:text-blue-700 transition">
-                    {isOpen ? "Hide Answer ↑" : "Show Answer ↓"}
-                  </button>
+                  {/* SEPARATOR BUTTON TRIGGER TOGGLE ACTION */}
+                  <div className="pl-13 pt-1">
+                    <button 
+                      onClick={() => setOpenId(isOpen ? null : q.id)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors focus:outline-none"
+                    >
+                      <span>{isOpen ? "Conceal Verification Solution" : "Expose Verification Solution"}</span>
+                      {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  </div>
 
-                  {/* Answer + Self Assessment */}
+                  {/* COLLAPSIBLE DATA DRAWER VIEWPORT REGION */}
                   {isOpen && (
-                    <div className="mt-4 ml-8">
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4">
-                        <p className="text-sm text-slate-600 leading-relaxed">{q.answer}</p>
+                    <div className="pl-13 pt-2 space-y-4 animate-in fade-in duration-200">
+                      <div className="bg-slate-50/80 border border-slate-200/50 rounded-xl p-4.5">
+                        <p className="text-xs font-medium text-slate-600 leading-relaxed whitespace-pre-line">
+                          {q.answer}
+                        </p>
                       </div>
 
-                      {!assessment[q.id] ? (
-                        <div className="mt-3">
-                          <p className="text-xs text-slate-400 mb-2">Did you know this?</p>
-                          <div className="flex gap-2">
-                            <button onClick={() => setAssessment({ ...assessment, [q.id]: "knew" })}
-                              className="px-4 py-2 text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition">
-                              ✓ Yes, I knew this
-                            </button>
-                            <button onClick={() => setAssessment({ ...assessment, [q.id]: "didnt" })}
-                              className="px-4 py-2 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200 rounded-xl hover:bg-rose-100 transition">
-                              ✗ Need to revise
-                            </button>
+                      {/* MEMORY SELF ASSESSMENT LOGIC CONTROLLER WINDOW */}
+                      <div className="pt-2 border-t border-slate-100">
+                        {!userAssessment ? (
+                          <div className="space-y-2">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Candidate Self Assessment Verification</p>
+                            <div className="flex gap-2">
+                              <button 
+                                onClick={() => commitSelfAssessmentState(q.id, "knew")}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-emerald-700 rounded-xl transition-all"
+                              >
+                                <CheckCircle2 size={13} />
+                                <span>Retained Successfully</span>
+                              </button>
+                              <button 
+                                onClick={() => commitSelfAssessmentState(q.id, "didnt")}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-700 rounded-xl transition-all"
+                              >
+                                <Bookmark size={13} />
+                                <span>Flag for Core Revision</span>
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      ) : (
-                        <div className={`mt-3 text-xs font-semibold px-4 py-2.5 rounded-xl w-fit ${
-                          assessment[q.id] === "knew"
-                            ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
-                            : "bg-rose-50 text-rose-600 border border-rose-200"
-                        }`}>
-                          {assessment[q.id] === "knew" ? "✓ Marked as known" : "📌 Added to revision list"}
-                        </div>
-                      )}
+                        ) : (
+                          <div className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 border rounded-xl shadow-inner ${
+                            userAssessment === "knew"
+                              ? "bg-emerald-50/60 border-emerald-200/60 text-emerald-700"
+                              : "bg-rose-50/60 border-rose-200/60 text-rose-700"
+                          }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${userAssessment === "knew" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                            <span>{userAssessment === "knew" ? "Candidate retained this structural layout successfully" : "Pinned inside localized compilation revision logs"}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
+
                 </div>
               </div>
             );
           })
         )}
-      </div>
+      </section>
+
     </div>
   );
 }

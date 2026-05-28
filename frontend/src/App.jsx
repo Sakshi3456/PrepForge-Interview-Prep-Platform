@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Layout            from "./Layout";
 import Login             from "./pages/Login";
 import Register          from "./pages/Register";
 import Dashboard         from "./pages/Dashboard";
@@ -29,12 +30,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-
+        
+        
         {/* Public */}
         <Route path="/"         element={<HomePage />} />
         <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />
 
+        <Route element={<Layout />}>
         {/* User Protected */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/notes"     element={<ProtectedRoute><Notes /></ProtectedRoute>} />
@@ -59,7 +62,7 @@ function App() {
         <Route path="/admin/coding"     element={<ProtectedRoute adminOnly><AdminCoding /></ProtectedRoute>} />
         <Route path="/admin/mcq" element={<ProtectedRoute adminOnly><AdminMcq /></ProtectedRoute>} />
         <Route path="/admin/mock" element={<ProtectedRoute adminOnly><AdminMockSets /></ProtectedRoute>} />
-
+      </Route>
       </Routes>
     </BrowserRouter>
   );

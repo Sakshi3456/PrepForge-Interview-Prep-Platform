@@ -1,431 +1,321 @@
 import { useEffect, useState } from "react";
-import { Navigate, Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { 
+  BookOpen, MessageSquare, Award, FileText, Terminal, 
+  Video, Bookmark, Brain, CheckCircle2, AlertTriangle, ChevronRight 
+} from "lucide-react";
 import api from "../services/api";
-import Sidebar from "../components/Sidebar";
 
 const modules = [
-  { icon: "📚", title: "Notes",          path: "/notes",     gradient: "from-indigo-500 to-violet-500"  },
-  { icon: "🎤", title: "Interview Qs",   path: "/questions", gradient: "from-sky-500 to-cyan-500"       },
-  { icon: "🧮", title: "Aptitude Quiz",  path: "/quiz",      gradient: "from-amber-500 to-orange-500"   },
-  { icon: "📝", title: "Technical MCQ",  path: "/mcq",       gradient: "from-cyan-500 to-blue-500"      },
-  { icon: "💻", title: "Coding",         path: "/coding",    gradient: "from-emerald-500 to-green-500"  },
-  { icon: "🎯", title: "Mock Interview", path: "/mock",      gradient: "from-violet-500 to-purple-500"  },
-  { icon: "⭐", title: "Bookmarks",      path: "/bookmarks", gradient: "from-rose-500 to-pink-500"      },
+  { icon: <BookOpen size={20} />, title: "Notes", path: "/notes", gradient: "from-indigo-500 to-violet-500", glow: "indigo" },
+  { icon: <MessageSquare size={20} />, title: "Interview Qs", path: "/questions", gradient: "from-sky-500 to-cyan-500", glow: "sky" },
+  { icon: <Award size={20} />, title: "Aptitude Quiz", path: "/quiz", gradient: "from-amber-500 to-orange-500", glow: "amber" },
+  { icon: <FileText size={20} />, title: "Technical MCQ", path: "/mcq", gradient: "from-cyan-500 to-blue-500", glow: "cyan" },
+  { icon: <Terminal size={20} />, title: "Coding", path: "/coding", gradient: "from-emerald-500 to-green-500", glow: "emerald" },
+  { icon: <Video size={20} />, title: "Mock Interview", path: "/mock", gradient: "from-violet-500 to-purple-500", glow: "violet" },
+  { icon: <Bookmark size={20} />, title: "Bookmarks", path: "/bookmarks", gradient: "from-rose-500 to-pink-500", glow: "rose" },
 ];
 
-// ── Greeting based on time of day ──
-const greeting = () => {
+const getGreeting = () => {
   const h = new Date().getHours();
   if (h < 12) return "Good Morning ☀️";
   if (h < 18) return "Good Afternoon 🌤️";
   return "Good Evening 🌙";
 };
 
-// ── Title-case a name ──
 const toTitleCase = (str = "") =>
   str.replace(/\w\S*/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
 function Dashboard() {
-  const token  = localStorage.getItem("token");
   const userId = localStorage.getItem("userId");
   const navigate = useNavigate();
 
-  const [progress,       setProgress]       = useState(null);
-  const [profile,        setProfile]        = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
-  const [loading,        setLoading]        = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  if (!token) return <Navigate to="/login" />;
+  useEffect(() => {
+    if (!userId) {
+      navigate("/login");
+      return;
+    }
+    fetchDashboardRuntimeData();
+  }, [userId]);
 
-  useEffect(() => { fetchAll(); }, []);
-
-  const fetchAll = async () => {
+  const fetchDashboardRuntimeData = async () => {
     setLoading(true);
     try {
-      const [progressRes, profileRes, aptRes, mcqRes, mockRes] =
-        await Promise.all([
-          api.get(`/progress/${userId}`),
-          api.get(`/profile/${userId}`),
-          api.get(`/quiz/history/${userId}`),
-          api.get(`/mcq-sessions/history/${userId}`),
-          api.get(`/mock/history/${userId}`),
-        ]);
+      const [progressRes, profileRes, aptRes, mcqRes, mockRes] = await Promise.all([
+        api.get(`/progress/${userId}`),
+        api.get(`/profile/${userId}`),
+        api.get(`/quiz/history/${userId}`),
+        api.get(`/mcq-sessions/history/${userId}`),
+        api.get(`/mock/history/${userId}`),
+      ]);
 
       setProgress(progressRes.data);
       setProfile(profileRes.data);
 
-      const all = [
+      const blendedActivity = [
         ...aptRes.data.map(s => ({
           label: `Aptitude — ${s.category}`,
           score: `${s.score}/${s.total}`,
-          date:  new Date(s.attemptedAt),
-          icon:  "🧠",
-          path:  "/quiz",
+          date: new Date(s.attemptedAt),
+          icon: <Brain size={18} className="text-amber-500" />,
+          path: "/quiz",
         })),
         ...mcqRes.data.map(s => ({
           label: `Technical MCQ — ${s.category}`,
           score: `${s.score}/${s.total}`,
-          date:  new Date(s.attemptedAt),
-          icon:  "📝",
-          path:  "/mcq",
+          date: new Date(s.attemptedAt),
+          icon: <FileText size={18} className="text-cyan-500" />,
+          path: "/mcq",
         })),
         ...mockRes.data.map(s => ({
-          label: `Mock — ${s.company}`,
+          label: `Mock Interview — ${s.company}`,
           score: `${s.score}/${s.total}`,
-          date:  new Date(s.createdAt),
-          icon:  "🎯",
-          path:  `/mock/result/${s.id}`,
+          date: new Date(s.createdAt),
+          icon: <Video size={18} className="text-violet-500" />,
+          path: `/mock/result/${s.id}`,
         })),
       ]
         .sort((a, b) => b.date - a.date)
         .slice(0, 5);
 
-      setRecentActivity(all);
-    } catch {
-      console.error("Dashboard fetch failed");
+      setRecentActivity(blendedActivity);
+    } catch (err) {
+      console.error("Dashboard multi-resource sync failed", err);
     } finally {
       setLoading(false);
     }
   };
 
-  // ── FIX: show "—" when no activity, not "0%" ──
-  const hasActivity =
-    progress?.overallAccuracy !== undefined &&
-    progress?.overallAccuracy !== null &&
-    progress?.totalAttempted > 0;
-
-  const accuracyDisplay = hasActivity
-    ? `${Math.round(progress.overallAccuracy)}%`
-    : "—";
-
-  const firstName = toTitleCase(profile?.name?.split(" ")[0] || "there");
+  const hasActivity = progress?.overallAccuracy !== undefined && progress?.overallAccuracy !== null && progress?.totalAttempted > 0;
+  const accuracyDisplay = hasActivity ? `${Math.round(progress.overallAccuracy)}%` : "—";
+  const firstName = toTitleCase(profile?.name?.split(" ")[0] || "User");
 
   return (
-    <div className="flex min-h-screen bg-[#f5f7fb]">
-
-      {/* ── Sidebar — fixed 240px ── */}
-      <div className="w-[240px] flex-shrink-0">
-        <Sidebar />
-      </div>
-
-      {/* ── Main ── */}
-      <div className="flex-1 overflow-auto">
-
-        {/* ── Topbar — fixed 56px ── */}
-        <div className="sticky top-0 h-[56px] z-30 backdrop-blur-xl bg-white/70 border-b border-white/40 shadow-sm flex items-center">
-          <div className="w-full max-w-[1200px] mx-auto px-8 flex items-center justify-between">
-
-            {/* ── FIX: greeting 15px / 500 weight ── */}
-            <div>
-              <p className="text-[15px] font-medium text-indigo-500 mb-0.5 leading-none">
-                {greeting()}
-              </p>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 leading-none">
-                Welcome back,{" "}
-                {/* ── FIX: title-case name ── */}
-                <span className="capitalize bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                  {firstName}
-                </span>{" "}
-                👋
-              </h1>
-            </div>
-
-            {/* Profile Avatar */}
-            <div
-              onClick={() => navigate("/profile")}
-              className="flex items-center gap-4 cursor-pointer group"
-            >
-              <div className="hidden md:block text-right">
-                <p className="font-semibold text-slate-700 leading-tight">
-                  {toTitleCase(profile?.name || "")}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">View profile</p>
-              </div>
-              <div className="relative">
-                <div className="absolute inset-0 bg-violet-500 blur-2xl opacity-30 rounded-full" />
-                <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-base shadow-md group-hover:scale-105 transition-all duration-300">
-                  {profile?.name?.charAt(0).toUpperCase() || "U"}
-                </div>
-              </div>
-            </div>
-
-          </div>
+    // Explicit removal of sidebars wraps. Content dynamically covers 100% space provided by layout layout canvas.
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
+      
+      {/* ── TOP NAV HEADER STATUS BAR ── */}
+      <header className="flex items-center justify-between border-b border-slate-200/60 pb-5">
+        <div>
+          <p className="text-xs font-bold tracking-widest uppercase text-indigo-600 mb-1">
+            {getGreeting()}
+          </p>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Welcome back, <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent font-black">{firstName}</span> 👋
+          </h1>
         </div>
 
-        {/* ── Body ── */}
-        <div className="max-w-[1200px] mx-auto p-8 space-y-8">
-
-          {/* ── Hero Banner — brand gradient ── */}
-          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#1e1b6e] to-[#4c2d8a] p-10 shadow-2xl">
-            <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 blur-3xl rounded-full pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-72 h-72 bg-cyan-400/10 blur-3xl rounded-full pointer-events-none" />
-
-            <div className="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
-
-              <div>
-                {/* ── FIX: eyebrow tracking 0.10em ── */}
-                <p className="uppercase tracking-[0.10em] text-white/70 text-xs font-semibold">
-                  Continue Learning
-                </p>
-
-                <h2 className="text-4xl font-bold text-white mt-3 leading-tight">
-                  Keep Your Streak Alive 🚀
-                </h2>
-
-                {/* ── FIX: subtitle 14px / leading-relaxed 1.6 ── */}
-                <p className="text-indigo-100/90 text-sm mt-3 max-w-2xl leading-relaxed">
-                  Practice coding, aptitude, and interview preparation daily
-                  to improve your placement readiness.
-                </p>
-
-                {/* Mini stats */}
-                <div className="flex flex-wrap gap-4 mt-6">
-                  {[
-                    { label: "Accuracy", value: accuracyDisplay },
-                    { label: "Streak",   value: `${progress?.currentStreak || 0} 🔥` },
-                    { label: "Solved",   value: progress?.codeSolved || 0 },
-                  ].map(s => (
-                    <div key={s.label}
-                      className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl px-5 py-3">
-                      {/* ── FIX: label 12px opacity-75 tracking 0.10em ── */}
-                      <p className="text-white/75 text-[12px] font-medium tracking-[0.10em] uppercase">
-                        {s.label}
-                      </p>
-                      {/* ── FIX: stat number 24px font-semibold ── */}
-                      <h3 className="text-[24px] font-semibold text-white mt-0.5 leading-none">
-                        {s.value}
-                      </h3>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── FIX: primary filled vs secondary outlined buttons ── */}
-              <div className="flex flex-wrap gap-4 items-center">
-                <button
-                  onClick={() => navigate("/quiz")}
-                  className="px-7 py-4 rounded-2xl bg-white text-[#1e1b6e] font-bold shadow-xl hover:bg-slate-50 hover:scale-105 transition-all duration-300"
-                >
-                  Start Quiz →
-                </button>
-                <button
-                  onClick={() => navigate("/coding")}
-                  className="px-7 py-4 rounded-2xl border-2 border-white/60 bg-transparent text-white font-bold hover:bg-white/10 hover:scale-105 transition-all duration-300"
-                >
-                  Solve Problems
-                </button>
-              </div>
-
+        <div onClick={() => navigate("/profile")} className="flex items-center gap-3.5 cursor-pointer group select-none">
+          <div className="hidden sm:block text-right leading-tight">
+            {loading ? (
+              <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+            ) : (
+              <>
+                <p className="font-bold text-sm text-slate-800 tracking-tight">{toTitleCase(profile?.name || "")}</p>
+                <p className="text-xs text-slate-400 font-medium mt-0.5 group-hover:text-indigo-600 transition-colors">View performance profile</p>
+              </>
+            )}
+          </div>
+          <div className="relative">
+            <div className="absolute inset-0 bg-indigo-500 blur-lg opacity-20 rounded-full group-hover:opacity-40 transition-opacity" />
+            <div className="relative w-11 h-11 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-base shadow-md shadow-indigo-100 group-hover:scale-[1.03] transition-all">
+              {profile?.name?.charAt(0).toUpperCase() || "U"}
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* ── Stat Cards — uniform padding 16px all sides ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-            {[
-              {
-                icon:  "🎯",
-                bg:    "bg-indigo-50",
-                glow:  "bg-indigo-100",
-                color: "text-indigo-600",
-                label: "Overall Accuracy",
-                value: accuracyDisplay,
-                sub:   `${progress?.totalAttempted || 0} attempts`,
-                path:  "/progress",
-              },
-              {
-                icon:  "🔥",
-                bg:    "bg-amber-50",
-                glow:  "bg-amber-100",
-                color: "text-amber-600",
-                label: "Day Streak",
-                value: progress?.currentStreak || 0,
-                sub:   `Best: ${progress?.longestStreak || 0} days`,
-                path:  null,
-              },
-              {
-                icon:  "💻",
-                bg:    "bg-emerald-50",
-                glow:  "bg-emerald-100",
-                color: "text-emerald-600",
-                label: "Coding Solved",
-                value: progress?.codeSolved || 0,
-                sub:   "Problems completed",
-                path:  "/coding",
-              },
-              {
-                icon:  "🎤",
-                bg:    "bg-violet-50",
-                glow:  "bg-violet-100",
-                color: "text-violet-600",
-                label: "Mock Interviews",
-                value: progress?.mockInterviewsDone || 0,
-                sub:   "Completed",
-                path:  "/mock",
-              },
-            ].map(card => (
-              <div
-                key={card.label}
-                onClick={() => card.path && navigate(card.path)}
-                className={`group relative overflow-hidden rounded-3xl bg-white border border-slate-100 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${card.path ? "cursor-pointer" : ""}`}
-              >
-                <div className={`absolute top-0 right-0 w-40 h-40 ${card.glow} blur-3xl opacity-40 pointer-events-none`} />
-                <div className="relative">
-                  <div className={`w-12 h-12 rounded-2xl ${card.bg} ${card.color} flex items-center justify-center text-2xl mb-4`}>
-                    {card.icon}
-                  </div>
-                  {/* ── FIX: label 12px tracking-wide uppercase ── */}
-                  <p className="text-[12px] font-medium text-slate-500 tracking-wide uppercase">
-                    {card.label}
-                  </p>
-                  {/* ── FIX: stat number 24px font-semibold ── */}
-                  <h2 className="text-[24px] font-semibold text-slate-900 mt-1 leading-none">
-                    {loading ? "—" : card.value}
-                  </h2>
-                  <p className="text-xs text-slate-400 mt-1">{card.sub}</p>
+      {/* ── HERO METRIC BANNER ── */}
+      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#12143a] to-[#281a54] p-8 md:p-10 shadow-lg shadow-indigo-950/20">
+        <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 blur-[80px] rounded-full pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-purple-500/10 blur-[80px] rounded-full pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="space-y-4">
+            <span className="uppercase tracking-[0.15em] text-indigo-400 text-xs font-black bg-indigo-500/10 border border-indigo-400/20 px-3 py-1 rounded-full">
+              Placement Blueprint Engine
+            </span>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight">
+              Keep Your Streak Alive 🚀
+            </h2>
+            <p className="text-slate-300 text-[14px] max-w-xl leading-relaxed font-medium">
+              Maintain daily incremental consistency across functional coding domains, logic blocks, and mock workflows to max out candidate hiring probability.
+            </p>
+
+            <div className="flex flex-wrap gap-4 pt-2">
+              {[
+                { label: "Accuracy", value: accuracyDisplay },
+                { label: "Streak Metric", value: `${progress?.currentStreak || 0} Days` },
+                { label: "Code Items Solved", value: progress?.codeSolved || 0 },
+              ].map(s => (
+                <div key={s.label} className="bg-white/[0.04] border border-white/5 backdrop-blur-md rounded-xl px-5 py-3 min-w-[120px]">
+                  <p className="text-slate-400 text-[10px] font-bold tracking-[0.12em] uppercase">{s.label}</p>
+                  <h3 className="text-xl font-bold text-white mt-1 tracking-tight">{loading ? "—" : s.value}</h3>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Activity + Weak Areas ── */}
-          {/* ── FIX: gap-8 between columns, border-t divider ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
-            {/* Recent Activity */}
-            <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-7">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-slate-900">Recent Activity</h3>
-                <button
-                  onClick={() => navigate("/progress")}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-[0.08em]"
-                >
-                  View all →
-                </button>
-              </div>
-
-              {loading ? (
-                <div className="space-y-3">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-              ) : recentActivity.length === 0 ? (
-                <div className="py-14 text-center">
-                  <div className="text-5xl mb-3">📋</div>
-                  <h3 className="text-lg font-bold text-slate-700">No activity yet</h3>
-                  {/* ── FIX: body line-height 1.6 ── */}
-                  <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                    Start practicing to track your progress 🚀
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {recentActivity.map((a, i) => (
-                    <div key={i} onClick={() => navigate(a.path)}
-                      className="group flex items-center gap-4 p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50/60 transition-all duration-200 cursor-pointer hover:shadow-sm">
-                      <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm border border-slate-100 shrink-0">
-                        {a.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {/* ── FIX: body line-height 1.6 ── */}
-                        <h4 className="font-bold text-sm text-slate-800 truncate leading-relaxed">
-                          {a.label}
-                        </h4>
-                        <p className="text-xs text-slate-400">{a.date.toLocaleDateString()}</p>
-                      </div>
-                      <div className="text-base font-bold text-indigo-600 whitespace-nowrap">
-                        {a.score}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* ── FIX: left border divider between columns ── */}
-            {/* Needs Attention */}
-            <div className="rounded-3xl bg-white border border-slate-100 shadow-sm p-7 xl:border-l-2 xl:border-slate-200/80">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-slate-900">⚠ Needs Attention</h3>
-                <button
-                  onClick={() => navigate("/progress")}
-                  className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-[0.08em]"
-                >
-                  Full Report →
-                </button>
-              </div>
-
-              {loading ? (
-                <div className="space-y-3">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-16 bg-slate-100 rounded-2xl animate-pulse" />
-                  ))}
-                </div>
-              ) : !progress?.weakAreas?.length ? (
-                <div className="py-14 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center text-3xl shadow-inner">
-                    ✅
-                  </div>
-                  <h3 className="text-xl font-bold text-emerald-600 mt-4">No weak areas!</h3>
-                  <p className="text-sm text-slate-400 mt-1 leading-relaxed">
-                    All categories are above 50%
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {progress.weakAreas.slice(0, 4).map(w => (
-                    <div key={w.category}
-                      className="p-4 rounded-2xl bg-rose-50/60 border border-rose-100 flex items-center justify-between">
-                      <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-slate-800 truncate">{w.category}</h4>
-                        <p className="text-xs text-slate-400 mt-0.5">{w.module}</p>
-                      </div>
-                      <div className="text-base font-bold text-rose-600 whitespace-nowrap ml-4">
-                        {Math.round(w.accuracy)}%
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Quick Access Modules ── */}
-          <div className="pt-2">
-            <div className="mb-6">
-              <h3 className="text-2xl font-bold text-slate-900">Quick Access</h3>
-              <p className="text-slate-400 mt-1 text-sm leading-relaxed">
-                Jump back into your preparation modules
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-7 gap-4">
-              {modules.map(mod => (
-                <Link key={mod.title} to={mod.path}
-                  className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 p-5 hover:-translate-y-1 hover:shadow-lg hover:border-indigo-200 transition-all duration-300">
-
-                  {/* ── FIX: hover background shift ── */}
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-[0.04] transition-all duration-300 bg-gradient-to-br ${mod.gradient}`} />
-
-                  <div className="relative z-10">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${mod.gradient} text-white flex items-center justify-center text-2xl shadow-md mb-4 group-hover:scale-105 transition-all duration-300`}>
-                      {mod.icon}
-                    </div>
-                    <h4 className="font-bold text-sm text-slate-800 group-hover:text-indigo-600 transition truncate">
-                      {mod.title}
-                    </h4>
-                    {/* ── FIX: sub-label 12px ── */}
-                    <p className="text-[12px] text-slate-400 mt-1 font-medium group-hover:translate-x-1 transition-transform duration-200">
-                      Continue →
-                    </p>
-                  </div>
-                </Link>
               ))}
             </div>
           </div>
 
+          <div className="flex flex-row sm:flex-col lg:flex-row gap-3.5 shrink-0">
+            <button
+              onClick={() => navigate("/quiz")}
+              className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-indigo-950/40 hover:scale-[1.02] transition-all"
+            >
+              Start Timed Quiz
+            </button>
+            <button
+              onClick={() => navigate("/coding")}
+              className="flex-1 sm:flex-none px-6 py-3.5 rounded-xl border border-slate-700/60 bg-slate-900/40 hover:bg-slate-900/80 text-slate-200 hover:text-white font-bold text-sm hover:scale-[1.02] transition-all"
+            >
+              Solve Challenges
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* ── METRICS GRID OVERVIEW ── */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {[
+          { label: "Overall System Accuracy", value: accuracyDisplay, sub: `${progress?.totalAttempted || 0} total attempts`, color: "from-indigo-500 to-indigo-600", path: "/progress" },
+          { label: "Current System Streak", value: `${progress?.currentStreak || 0} 🔥`, sub: `Personal best: ${progress?.longestStreak || 0} days`, color: "from-amber-500 to-orange-500", path: null },
+          { label: "Algorithmic Challenges", value: progress?.codeSolved || 0, sub: "Verified structural responses", color: "from-emerald-500 to-teal-500", path: "/coding" },
+          { label: "Corporate Simulations", value: progress?.mockInterviewsDone || 0, sub: "Mock sessions finalized", color: "from-purple-500 to-violet-500", path: "/mock" },
+        ].map((card, idx) => (
+          <div
+            key={idx}
+            onClick={() => card.path && navigate(card.path)}
+            className={`bg-white border border-slate-200/60 p-5 rounded-2xl shadow-sm relative overflow-hidden transition-all duration-200
+              ${card.path ? "cursor-pointer hover:shadow-md hover:border-slate-300" : ""}`}
+          >
+            <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${card.color}`} />
+            <p className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">{card.label}</p>
+            <h2 className="text-2xl font-black text-slate-800 mt-2 tracking-tight">{loading ? "—" : card.value}</h2>
+            <p className="text-xs text-slate-400 font-medium mt-1.5">{card.sub}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* ── DECOUPLED COLLATERAL ROW ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* RECENT FEEDBLOCK */}
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-6 shadow-sm lg:col-span-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">Recent Execution Streams</h3>
+            <button onClick={() => navigate("/progress")} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest">
+              Audit Logs →
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-slate-50 border border-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : recentActivity.length === 0 ? (
+            <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-xl">
+              <p className="text-sm text-slate-400 font-medium">No activity items flagged in this frame cycle.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentActivity.map((a, i) => (
+                <div key={i} onClick={() => navigate(a.path)} className="group flex items-center justify-between p-3.5 bg-slate-50/50 border border-slate-200/40 hover:border-indigo-200/80 hover:bg-indigo-50/20 rounded-xl transition-all cursor-pointer">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-white border border-slate-200/60 flex items-center justify-center shadow-sm shrink-0">
+                      {a.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-xs text-slate-800 truncate tracking-tight">{a.label}</h4>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">{a.date.toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-extrabold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">{a.score}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* POLISHED WEAK AREAS PANEL */}
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-6 shadow-sm lg:col-span-6">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <h3 className="text-base font-bold text-slate-900 tracking-tight">Vulnerability Vector Analysis</h3>
+            <button onClick={() => navigate("/progress")} className="text-xs font-bold text-indigo-600 hover:text-indigo-700 uppercase tracking-widest">
+              Metrics Core →
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-slate-50 border border-slate-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : !progress?.weakAreas?.length ? (
+            <div className="py-10 text-center flex flex-col items-center justify-center border border-emerald-100 bg-emerald-50/20 rounded-xl">
+              <CheckCircle2 size={28} className="text-emerald-500" />
+              <h4 className="text-sm font-bold text-emerald-800 tracking-tight mt-2">Zero Platform Vulnerabilities</h4>
+              <p className="text-xs text-slate-400 mt-0.5 font-medium">All structural modules trace output limits above 50%.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {progress.weakAreas.slice(0, 4).map((w, idx) => (
+                <div key={idx} className="p-3.5 bg-rose-50/30 border border-rose-100/70 rounded-xl flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <AlertTriangle size={14} className="text-rose-500 shrink-0" />
+                      <h4 className="font-bold text-xs text-slate-800 truncate tracking-tight">{w.category}</h4>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">{w.module}</p>
+                  </div>
+                  <span className="text-xs font-black text-rose-600 bg-rose-50 border border-rose-100/80 px-2.5 py-1 rounded-md">
+                    {Math.round(w.accuracy)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ── QUICK LINKED CARDS INTERACTION GRID ── */}
+      <section className="space-y-4">
+        <div>
+          <h3 className="text-lg font-black text-slate-900 tracking-tight">Direct Component Routing</h3>
+          <p className="text-xs text-slate-400 font-medium">Instantly fast-forward your execution path context inside targeted preparation tracks.</p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-4">
+          {modules.map((mod, idx) => (
+            <Link 
+              key={idx} 
+              to={mod.path}
+              className="group relative overflow-hidden bg-white border border-slate-200/60 p-4.5 rounded-xl hover:shadow-md hover:border-slate-300 transition-all duration-200 flex flex-col justify-between min-h-[140px]"
+            >
+              {/* Reflow hover grid vectors */}
+              <div className={`absolute -right-6 -bottom-6 w-20 h-20 bg-gradient-to-br ${mod.gradient} opacity-[0.02] group-hover:opacity-[0.08] rounded-full transition-opacity duration-300`} />
+              
+              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${mod.gradient} text-white flex items-center justify-center shadow-md shadow-${mod.glow}-500/20 group-hover:scale-105 transition-transform`}>
+                {mod.icon}
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="font-bold text-xs text-slate-800 group-hover:text-indigo-600 transition-colors truncate tracking-tight">
+                  {mod.title}
+                </h4>
+                <div className="flex items-center gap-0.5 text-[11px] text-slate-400 font-bold mt-1 tracking-wide uppercase">
+                  <span>Resume</span>
+                  <ChevronRight size={10} className="group-hover:translate-x-0.5 transition-transform" />
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
     </div>
   );
 }
