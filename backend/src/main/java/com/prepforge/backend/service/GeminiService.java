@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class GeminiService {
 
-    @Value("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")
+    @Value("${groq.api.key}")
     private String apiKey;
 
     @Value("llama-3.1-8b-instant")
