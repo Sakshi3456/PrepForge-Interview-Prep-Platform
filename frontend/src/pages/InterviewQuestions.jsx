@@ -91,10 +91,10 @@ function InterviewQuestions() {
   };
 
   return (
-    <div className="space-y-8 pb-16 max-w-[1400px] mx-auto relative">
+    <div className="space-y-8 pb-16 relative min-w-0 overflow-x-hidden w-full">
       
       {/* ── TOP SECTION: BRANDED CORE OVERLAY HERO ── */}
-      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0c0f2b] via-[#161a46] to-[#261b55] p-8 shadow-md">
+      <div className="relative min-w-0 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0c0f2b] via-[#161a46] to-[#261b55] p-8 shadow-md">
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 blur-[80px] pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-purple-500/10 blur-[80px] pointer-events-none" />
 
@@ -126,8 +126,8 @@ function InterviewQuestions() {
       </div>
 
       {/* ── CENTRAL CONTROL DASHBOARD MANAGEMENT PANEL ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col lg:flex-row gap-3 items-center">
-        <div className="relative flex-1 w-full">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col lg:flex-row gap-3 items-center min-w-0 overflow-hidden">
+        <div className="relative flex-1 min-w-0 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
             type="text" 
@@ -138,7 +138,7 @@ function InterviewQuestions() {
           />
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0 min-w-0">
           <div className="relative flex-1">
             <select 
               className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none pr-8 min-w-[140px]"
@@ -177,7 +177,7 @@ function InterviewQuestions() {
           <button 
             key={cat} 
             onClick={() => setCategory(cat)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all duration-150 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all duration-150 ${
               category === cat
                 ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
                 : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700"
@@ -248,7 +248,7 @@ function InterviewQuestions() {
       )}
 
       {/* ── CORE RUNTIME ARCHITECTURE QUESTION SET LIST ── */}
-      <section className="space-y-3">
+      <section className="space-y-4">
         {loading ? (
           [...Array(4)].map((_, i) => (
             <div key={i} className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-3 animate-pulse">
@@ -271,11 +271,11 @@ function InterviewQuestions() {
             return (
               <div 
                 key={q.id}
-                className={`bg-white rounded-2xl border transition-all duration-200 overflow-hidden ${
+                className={`bg-white rounded-2xl border transition-colors duration-200 overflow-hidden min-w-0 ${
                   isOpen ? "border-indigo-200 shadow-md shadow-slate-100" : "border-slate-200/60 hover:border-slate-300 hover:shadow-sm"
                 }`}
               >
-                <div className="p-5 md:p-6 space-y-4">
+                <div className="p-5 space-y-3">
                   
                   {/* COMPONENT LAYOUT META WRAPPER HEADER */}
                   <div className="flex items-start gap-4">
@@ -283,7 +283,7 @@ function InterviewQuestions() {
                       {categoryIcons[q.category] || <HelpCircle size={16} />}
                     </div>
 
-                    <div className="flex-1 space-y-1">
+                    <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
                           {q.category}
@@ -295,7 +295,7 @@ function InterviewQuestions() {
                           </span>
                         )}
                       </div>
-                      <h2 className="text-sm font-bold text-slate-800 tracking-tight leading-snug">
+                      <h2 className="text-[15px] font-bold text-slate-800 tracking-tight leading-snug break-words">
                         {q.question}
                       </h2>
                     </div>
@@ -317,7 +317,7 @@ function InterviewQuestions() {
                   </div>
 
                   {/* SEPARATOR BUTTON TRIGGER TOGGLE ACTION */}
-                  <div className="pl-13 pt-1">
+                  <div className="pl-13 pt-0">
                     <button 
                       onClick={() => setOpenId(isOpen ? null : q.id)}
                       className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors focus:outline-none"

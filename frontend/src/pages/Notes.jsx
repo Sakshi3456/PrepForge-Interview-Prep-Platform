@@ -46,7 +46,7 @@ function NoteCard({ note, onBookmark }) {
   };
 
   return (
-    <div className="group relative bg-white rounded-2xl border border-slate-200/60 hover:border-indigo-200/80 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden">
+    <div className="group relative bg-white rounded-2xl border border-slate-200/60 hover:border-indigo-200/80 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col overflow-hidden min-w-0">
       
       {/* Precision Structural Color Gradient Top Bar Accent Rule */}
       <div className={`h-1.5 w-full ${
@@ -55,7 +55,7 @@ function NoteCard({ note, onBookmark }) {
                                        "bg-gradient-to-r from-emerald-500 to-teal-500"
       }`} />
 
-      <div className="p-6 flex flex-col flex-1 space-y-4">
+      <div className="p-5 flex flex-col flex-1 space-y-4">
         
         {/* UPPER SUMMARY REGION */}
         <div className="flex items-start justify-between gap-4">
@@ -67,7 +67,7 @@ function NoteCard({ note, onBookmark }) {
               <p className="text-[10px] font-bold tracking-wider uppercase text-slate-400">
                 {note.category}
               </p>
-              <h3 className="text-sm font-bold text-slate-800 tracking-tight truncate mt-0.5" title={note.title}>
+              <h3 className="text-sm font-bold text-slate-800 tracking-tight line-clamp-2 break-words mt-0.5" title={note.title}>
                 {note.title}
               </h3>
             </div>
@@ -219,7 +219,7 @@ function Notes() {
   };
 
   return (
-    <div className="space-y-8 pb-16 relative">
+    <div className="space-y-8 pb-16 relative min-w-0 overflow-x-hidden w-full">
       
       {/* TOAST SYSTEM MESSAGING BANNER ELEMENT */}
       {toastMessage && (
@@ -230,7 +230,7 @@ function Notes() {
       )}
 
       {/* ── TOP HEADER JUMBOTRON GRADIENT BANNER ── */}
-      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#121635] via-[#1b1e4b] to-[#2b1f5d] p-8 shadow-md">
+      <div className="relative min-w-0 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#121635] via-[#1b1e4b] to-[#2b1f5d] p-8 shadow-md">
         <div className="absolute -top-12 -right-12 w-60 h-60 bg-indigo-500/10 blur-[80px] pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-60 h-60 bg-purple-500/10 blur-[80px] pointer-events-none" />
 
@@ -263,7 +263,7 @@ function Notes() {
       </div>
 
       {/* ── INTERACTIVE CONTROLS CONSOLE FLOATING BAR ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col md:flex-row gap-3 items-center">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col md:flex-row gap-3 items-center min-w-0 overflow-hidden">
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
@@ -319,7 +319,7 @@ function Notes() {
       {/* ── RENDER MATRIX GRID WINDOW ── */}
       <section>
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-4 animate-pulse">
                 <div className="h-1 w-1/4 bg-slate-100 rounded" />

@@ -52,6 +52,7 @@ function App() {
         <Route path="/mock/history"            element={<ProtectedRoute><MockHistory /></ProtectedRoute>} />
         <Route path="/progress"   element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        </Route>
 
         {/* Admin Protected */}
         <Route path="/admin"            element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
@@ -62,7 +63,7 @@ function App() {
         <Route path="/admin/coding"     element={<ProtectedRoute adminOnly><AdminCoding /></ProtectedRoute>} />
         <Route path="/admin/mcq" element={<ProtectedRoute adminOnly><AdminMcq /></ProtectedRoute>} />
         <Route path="/admin/mock" element={<ProtectedRoute adminOnly><AdminMockSets /></ProtectedRoute>} />
-      </Route>
+      
       </Routes>
     </BrowserRouter>
   );

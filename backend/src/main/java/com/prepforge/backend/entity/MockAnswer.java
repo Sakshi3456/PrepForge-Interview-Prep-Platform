@@ -15,7 +15,7 @@ public class MockAnswer {
     private Long sessionId;
     private Long sourceQuestionId;
     private String sourceTable;
-    private String questionType;  // THEORY / MCQ / CODING
+    private String questionType;   // THEORY / MCQ / CODING
 
     @Column(columnDefinition = "TEXT")
     private String questionText;
@@ -24,11 +24,25 @@ public class MockAnswer {
     private String userAnswer;
 
     private Boolean isAnswered;
-    private Boolean isCorrect;   // null for THEORY/CODING, true/false for MCQ
+    private Boolean isCorrect;     // null=not evaluated, true/false for MCQ
 
-    // AI fields — null now, filled in Step 4
+    // ── AI feedback ──
     private Integer aiScore;
 
     @Column(columnDefinition = "TEXT")
     private String aiFeedback;
+
+    // ── Future: answer mode ──
+    private String answerMode;     // TEXT / SPEECH / CODE
+
+    // ── Future: code execution ──
+    private String language;
+
+    @Column(columnDefinition = "TEXT")
+    private String actualOutput;
+
+    @Column(columnDefinition = "TEXT")
+    private String expectedOutput;
+
+    private Boolean codeCorrect;
 }

@@ -85,29 +85,48 @@ public class ProfileService {
         // ── Recent Activity ──
         List<ProfileDto.ActivityItem> activity = new ArrayList<>();
 
-        aptSessions.stream().limit(3).forEach(s ->
-                activity.add(new ProfileDto.ActivityItem(
-                        "APTITUDE",
-                        "Aptitude — " + s.getCategory(),
-                        s.getScore() + "/" + s.getTotal(),
-                        s.getAttemptedAt().format(FMT),
-                        "🧠")));
+        // Find this section in getProfile() around line 88-95
+        aptSessions.stream().limit(3).forEach(s -> {
+            // ── FIX: null check on attemptedAt ──
+            String dateStr = s.getAttemptedAt() != null
+                    ? s.getAttemptedAt().format(FMT)
+                    : "Unknown date";
 
-        mcqSessions.stream().limit(3).forEach(s ->
-                activity.add(new ProfileDto.ActivityItem(
-                        "MCQ",
-                        "Technical MCQ — " + s.getCategory(),
-                        s.getScore() + "/" + s.getTotal(),
-                        s.getAttemptedAt().format(FMT),
-                        "📝")));
+            activity.add(new ProfileDto.ActivityItem(
+                    "APTITUDE",
+                    "Aptitude — " + s.getCategory(),
+                    s.getScore() + "/" + s.getTotal(),
+                    dateStr,
+                    "🧠"));
+        });
 
-        mockSessions.stream().limit(3).forEach(s ->
-                activity.add(new ProfileDto.ActivityItem(
-                        "MOCK",
-                        "Mock Interview — " + s.getCompany(),
-                        s.getScore() + "/" + s.getTotal(),
-                        s.getCreatedAt().format(FMT),
-                        "🎯")));
+        mcqSessions.stream().limit(3).forEach(s -> {
+            // ── FIX: null check on attemptedAt ──
+            String dateStr = s.getAttemptedAt() != null
+                    ? s.getAttemptedAt().format(FMT)
+                    : "Unknown date";
+
+            activity.add(new ProfileDto.ActivityItem(
+                    "MCQ",
+                    "Technical MCQ — " + s.getCategory(),
+                    s.getScore() + "/" + s.getTotal(),
+                    dateStr,
+                    "📝"));
+        });
+
+        mockSessions.stream().limit(3).forEach(s -> {
+            // ── FIX: null check on createdAt ──
+            String dateStr = s.getCreatedAt() != null
+                    ? s.getCreatedAt().format(FMT)
+                    : "Unknown date";
+
+            activity.add(new ProfileDto.ActivityItem(
+                    "MOCK",
+                    "Mock Interview — " + s.getCompany(),
+                    s.getScore() + "/" + s.getTotal(),
+                    dateStr,
+                    "🎯"));
+        });
 
         // Sort by date descending, take last 6
         activity.sort((a, b) -> b.getDate().compareTo(a.getDate()));

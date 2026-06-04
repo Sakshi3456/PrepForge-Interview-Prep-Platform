@@ -3,23 +3,26 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 
 export default function Layout() {
-  // Global visibility state stays persistent across page switches
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="min-h-screen w-full bg-[#030712] flex overflow-x-hidden antialiased text-slate-100">
-      
-      {/* Sidebar Component stays securely mounted */}
-      <Sidebar isOpen={isOpen} setIsOpen={setIsOpen} />
+    <div
+      className={`grid min-h-screen overflow-hidden bg-[#030712] antialiased text-slate-100 ${
+        isOpen
+          ? "grid-cols-[260px_1fr]"
+          : "grid-cols-[88px_1fr]"
+      }`}
+    >
+      <Sidebar
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+      />
 
-      {/* Dynamic Area: Expands to cover 100% of the remaining horizontal canvas */}
-      <div className="flex-1 min-w-0 flex flex-col transition-all duration-300 ease-in-out">
-        <main className="p-6 md:p-8 max-w-[1600px] w-full mx-auto flex-1">
-          {/* This renders whatever child route is active */}
+      <div className="main-content min-w-0 overflow-x-hidden flex flex-col">
+        <main className="p-6 md:p-8 w-full flex-1 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
-
     </div>
   );
 }

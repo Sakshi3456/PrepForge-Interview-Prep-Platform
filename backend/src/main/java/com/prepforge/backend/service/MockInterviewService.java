@@ -9,6 +9,9 @@ import com.prepforge.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,14 +20,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MockInterviewService {
 
-    private final InterviewSetRepository           setRepo;
-    private final InterviewSetQuestionRepository   setQRepo;
-    private final MockSessionRepository            sessionRepo;
-    private final MockAnswerRepository             answerRepo;
-    private final InterviewQuestionRepository      iqRepo;
-    private final TechnicalMcqRepository           mcqRepo;
-    private final AptitudeQuestionRepository       aptRepo;
-    private final CodingQuestionRepository         codingRepo;
+    private final InterviewSetRepository         setRepo;
+    private final InterviewSetQuestionRepository setQRepo;
+    private final MockSessionRepository          sessionRepo;
+    private final MockAnswerRepository           answerRepo;
+    private final InterviewQuestionRepository    iqRepo;
+    private final TechnicalMcqRepository         mcqRepo;
+    private final AptitudeQuestionRepository     aptRepo;
+    private final CodingQuestionRepository       codingRepo;
+    private final GeminiService                  geminiService;
 
     // ── Get all sets ──
     public List<InterviewSet> getAllSets() {
@@ -37,7 +41,7 @@ public class MockInterviewService {
                 .orElseThrow(() -> new RuntimeException("Set not found"));
     }
 
-    // ── Get questions for a set — pulls from source tables ──
+    // ── Get questions for a set ──
     public List<QuestionDto> getQuestionsForSet(Long setId) {
         List<InterviewSetQuestion> refs =
                 setQRepo.findBySetIdOrderByOrderIndex(setId);
@@ -71,7 +75,6 @@ public class MockInterviewService {
                                 dto.setOptionB(q.getOptionB());
                                 dto.setOptionC(q.getOptionC());
                                 dto.setOptionD(q.getOptionD());
-                                // correctAnswer NOT set in dto
                             });
                 }
 
@@ -155,6 +158,7 @@ public class MockInterviewService {
 
         List<MockAnswer> toSave = new ArrayList<>();
 
+        // ── Step 1: Process all answers ──
         for (AnswerDto dto : request.getAnswers()) {
             MockAnswer answer = new MockAnswer();
             answer.setSourceQuestionId(dto.getSourceQuestionId());
@@ -162,32 +166,90 @@ public class MockInterviewService {
             answer.setQuestionType(dto.getQuestionType());
             answer.setQuestionText(dto.getQuestionText());
             answer.setUserAnswer(dto.getUserAnswer());
+            answer.setAnswerMode(
+                    dto.getAnswerMode() != null
+                            ? dto.getAnswerMode() : "TEXT");
+            answer.setLanguage(dto.getLanguage());
 
             boolean isAnswered = dto.getUserAnswer() != null
                     && !dto.getUserAnswer().trim().isEmpty();
             answer.setIsAnswered(isAnswered);
 
             if ("MCQ".equals(dto.getQuestionType())) {
+                // Auto score MCQ
                 mcqTotal++;
-                // get correct answer directly from source table
-                String correctAnswer = getCorrectAnswer(
+                String correct = getCorrectAnswer(
                         dto.getSourceTable(),
                         dto.getSourceQuestionId());
                 boolean isCorrect = isAnswered
-                        && dto.getUserAnswer().equals(correctAnswer);
+                        && dto.getUserAnswer().equals(correct);
                 answer.setIsCorrect(isCorrect);
                 if (isCorrect) { score++; mcqScore++; }
 
             } else {
-                // THEORY or CODING — cannot auto score
+                // THEORY or CODING — will be AI scored
                 answer.setIsCorrect(null);
-                if (isAnswered) score++; // count as attempted
+                if (isAnswered) score++;
             }
 
             toSave.add(answer);
         }
 
-        // Save session
+        // ── Step 2: Parallel Gemini calls for THEORY + CODING ──
+        List<MockAnswer> needsAi = toSave.stream()
+                .filter(a ->
+                        ("THEORY".equals(a.getQuestionType())
+                                || "CODING".equals(a.getQuestionType()))
+                                && Boolean.TRUE.equals(a.getIsAnswered()))
+                .toList();
+
+        if (!needsAi.isEmpty()) {
+            try {
+
+                // Fire all Gemini calls simultaneously
+                List<GeminiService.GeminiResult> results =
+                        Flux.fromIterable(needsAi)
+                                .flatMap(a ->
+                                        Mono.fromCallable(() ->
+                                                geminiService.getFeedbackWithRetry(
+                                                        a.getQuestionText(),
+                                                        a.getUserAnswer()
+                                                )
+                                        ).subscribeOn(Schedulers.boundedElastic())
+                                )
+                                .collectList()
+                                .block();
+
+                // Apply results back to answers
+                for (int i = 0; i < needsAi.size(); i++) {
+
+                    GeminiService.GeminiResult ai =
+                            results.get(i);
+
+                    MockAnswer answer =
+                            needsAi.get(i);
+
+                    answer.setAiScore(ai.score);
+
+                    String feedback = ai.feedback;
+
+                    if (ai.idealPoints != null
+                            && !ai.idealPoints.isEmpty()) {
+
+                        feedback += "\n\n💡 Key points: "
+                                + ai.idealPoints;
+                    }
+
+                    answer.setAiFeedback(feedback);
+                }
+
+            } catch (Exception e) {
+
+                e.printStackTrace();
+            }
+        }
+
+        // ── Step 3: Save session ──
         MockSession session = new MockSession();
         session.setUserId(request.getUserId());
         session.setSetId(request.getSetId());
@@ -200,7 +262,7 @@ public class MockInterviewService {
         session.setTimeTaken(request.getTimeTaken());
         MockSession saved = sessionRepo.save(session);
 
-        // Set sessionId on each answer and save all
+        // ── Step 4: Save answers ──
         toSave.forEach(a -> a.setSessionId(saved.getId()));
         answerRepo.saveAll(toSave);
 
@@ -220,14 +282,17 @@ public class MockInterviewService {
 
     // ── Get user history ──
     public List<MockSession> getHistory(Long userId) {
-        return sessionRepo.findByUserIdOrderByCreatedAtDesc(userId);
+        return sessionRepo
+                .findByUserIdOrderByCreatedAtDesc(userId);
     }
 
     // ── Get one result ──
     public MockResultDto getResult(Long sessionId) {
         MockSession session = sessionRepo.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Not found"));
-        List<MockAnswer> answers = answerRepo.findBySessionId(sessionId);
+                .orElseThrow(() ->
+                        new RuntimeException("Not found"));
+        List<MockAnswer> answers =
+                answerRepo.findBySessionId(sessionId);
         return new MockResultDto(session, answers);
     }
 }
