@@ -26,7 +26,7 @@ Rather than juggling multiple resources, PrepForge consolidates six integrated f
 
 🔐 JWT Authentication — Secure signup/login with Spring Security and token-based auth
 
-🤖 AI Mock Interviews — Gemini API integration for automated, real-time mock interview simulations
+🤖 AI Mock Interviews — Groq API integration for automated, real-time mock interview simulations
 
 🏷️ Company Tag Filtering — 50+ company tags to filter problems and questions by target employer
 
@@ -57,7 +57,7 @@ Spring Data JPA,
 MySQL
 
 Tools & APIs- 
-Gemini AI API, 
+Groq AI API, 
 Git & GitHub, 
 Maven, 
 Postman
@@ -116,7 +116,7 @@ spring.datasource.password=YOUR_DB_PASSWORD
 
 jwt.secret=YOUR_JWT_SECRET
 
-gemini.api.key=YOUR_GEMINI_API_KEY
+Groq.api.key=YOUR_Groq_API_KEY
 
 💻 Frontend Setup
 # Navigate to frontend
