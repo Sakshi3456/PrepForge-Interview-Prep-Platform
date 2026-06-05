@@ -1,7 +1,9 @@
 package com.prepforge.backend.service;
 
 import com.prepforge.backend.entity.CodingQuestion;
+import com.prepforge.backend.entity.UserCodingProgress;
 import com.prepforge.backend.repository.CodingQuestionRepository;
+import com.prepforge.backend.repository.UserCodingProgressRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,18 +13,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CodingQuestionService {
 
-    private final CodingQuestionRepository repository;
-
-    // ── Get All ──
-    public List<CodingQuestion> getAll() {
-        return repository.findAll();
-    }
-
-    // ── Get by ID ──
-    public CodingQuestion getById(Long id) {
-        return repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Question not found"));
-    }
+    private final CodingQuestionRepository     repository;
+    private final UserCodingProgressRepository codingProgressRepo;
 
     // ── Add ──
     public CodingQuestion add(CodingQuestion question) {
@@ -60,11 +52,14 @@ public class CodingQuestionService {
             String difficulty, String language, String topic) {
 
         if (difficulty != null && language != null && topic != null) {
-            return repository.findByDifficultyAndLanguageAndTopic(difficulty, language, topic);
+            return repository.findByDifficultyAndLanguageAndTopic(
+                    difficulty, language, topic);
         } else if (difficulty != null && language != null) {
-            return repository.findByDifficultyAndLanguage(difficulty, language);
+            return repository.findByDifficultyAndLanguage(
+                    difficulty, language);
         } else if (difficulty != null && topic != null) {
-            return repository.findByDifficultyAndTopic(difficulty, topic);
+            return repository.findByDifficultyAndTopic(
+                    difficulty, topic);
         } else if (difficulty != null) {
             return repository.findByDifficulty(difficulty);
         } else if (language != null) {
@@ -86,12 +81,42 @@ public class CodingQuestionService {
         return repository.findByCompanyTagsContainingIgnoreCase(company);
     }
 
-    // ── Toggle solved ──
-    public CodingQuestion toggleSolved(Long id) {
+    // ── Get all ──
+    public List<CodingQuestion> getAll() {
+        return repository.findAll();
+    }
+
+    // ── Get by ID ──
+    public CodingQuestion getById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+    }
+
+    // ── Toggle solved — updates both coding_questions
+    //    AND user_coding_progress ──
+    public CodingQuestion toggleSolved(Long id, Long userId) {
         CodingQuestion q = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
-        q.setIsSolved(!q.getIsSolved());
-        return repository.save(q);
+
+        // Null-safe toggle
+        boolean current = q.getIsSolved() != null && q.getIsSolved();
+        q.setIsSolved(!current);
+        CodingQuestion saved = repository.save(q);
+
+        // Update user_coding_progress so dashboard reflects it
+        if (userId != null) {
+            UserCodingProgress progress =
+                    codingProgressRepo
+                            .findByUserIdAndQuestionId(userId, id)
+                            .orElse(new UserCodingProgress());
+
+            progress.setUserId(userId);
+            progress.setQuestionId(id);
+            progress.setStatus(!current ? "SOLVED" : "UNSOLVED");
+            codingProgressRepo.save(progress);
+        }
+
+        return saved;
     }
 
     // ── Similar problems (same topic, different id) ──

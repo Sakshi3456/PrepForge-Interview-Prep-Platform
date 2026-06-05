@@ -71,8 +71,10 @@ public class CodingQuestionController {
 
     // Toggle solved
     @PutMapping("/{id}/solved")
-    public CodingQuestion toggleSolved(@PathVariable Long id) {
-        return service.toggleSolved(id);
+    public CodingQuestion toggleSolved(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long userId) {
+        return service.toggleSolved(id, userId);
     }
 
     // Get similar problems

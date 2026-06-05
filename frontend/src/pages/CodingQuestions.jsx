@@ -64,6 +64,16 @@ function CodingQuestions() {
     }
   };
 
+  const toggleSolved = async (id) => {
+    try {
+        const userId = localStorage.getItem("userId");
+        await api.put(`/coding/${id}/solved?userId=${userId}`);
+        fetchQuestions();
+    } catch {
+        console.error("Toggle failed");
+    }
+};
+
   const filteredQuestions = questions.filter(q => {
     const matchSearch     = q.title.toLowerCase().includes(search.toLowerCase());
     const matchDifficulty = difficulty === "All" || q.difficulty === difficulty;
@@ -79,6 +89,8 @@ function CodingQuestions() {
     intermediate: questions.filter(q => q.difficulty === "Intermediate").length,
     hard:         questions.filter(q => q.difficulty === "Hard").length,
   };
+
+  
 
   return (
     <div className="space-y-8 pb-16 max-w-[1400px] mx-auto relative px-4 lg:px-0">
