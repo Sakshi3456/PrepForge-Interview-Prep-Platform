@@ -25,6 +25,10 @@ import MockHistory   from "./pages/MockHistory";
 import AdminMockSets from "./pages/AdminMockSets";
 import Progress from "./pages/Progress";
 import Profile from "./pages/Profile";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword  from "./pages/ResetPassword";
+import OAuth2Callback from "./pages/OAuth2Callback";
+import VerifyEmail    from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -52,6 +56,10 @@ function App() {
         <Route path="/mock/history"            element={<ProtectedRoute><MockHistory /></ProtectedRoute>} />
         <Route path="/progress"   element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/forgot-password"  element={<ForgotPassword />} />
+        <Route path="/reset-password"   element={<ResetPassword />}  />
+        <Route path="/oauth2/callback"  element={<OAuth2Callback />} />
+        <Route path="/verify-email"     element={<VerifyEmail />}    />
         </Route>
 
         {/* Admin Protected */}

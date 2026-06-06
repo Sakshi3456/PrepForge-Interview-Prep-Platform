@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/mcq-sessions")
-@CrossOrigin(origins = "http://localhost:5174")
+
 @RequiredArgsConstructor
 public class McqSessionController {
 

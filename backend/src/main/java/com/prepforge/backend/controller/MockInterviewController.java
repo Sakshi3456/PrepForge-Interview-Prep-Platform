@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/mock")
-@CrossOrigin(origins = "http://localhost:5174")
+
 @RequiredArgsConstructor
 public class MockInterviewController {
 

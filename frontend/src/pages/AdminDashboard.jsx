@@ -17,8 +17,6 @@ function AdminDashboard() {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
 
-  if (!token || role !== "ADMIN") return <Navigate to="/login" replace />;
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -35,6 +33,8 @@ function AdminDashboard() {
 
     fetchStats();
   }, [token]);
+
+  if (!token || role !== "ADMIN") return <Navigate to="/login" replace />;
 
   const statCards = [
     { label: "Total Users",   value: stats.users ?? 0,     icon: "👥", dotColor: "bg-indigo-500",  iconBg: "bg-indigo-50 text-indigo-600"  },

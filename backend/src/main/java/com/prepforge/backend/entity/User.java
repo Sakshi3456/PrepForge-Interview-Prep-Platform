@@ -3,6 +3,8 @@ package com.prepforge.backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -29,4 +31,13 @@ public class User {
     private String bio;         // short bio
     private String linkedinUrl; // linkedin profile
     private String githubUrl;
+
+    private String  authProvider;
+    private String  googleId;
+    private String  profilePicture;
+    private Boolean emailVerified = false;
+    private String  verificationToken;
+    private String  resetPasswordToken;
+    private LocalDateTime resetTokenExpiry;
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

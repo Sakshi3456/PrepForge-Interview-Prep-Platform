@@ -1,234 +1,268 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { Terminal, User, Mail, Lock, Eye, EyeOff, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const navigate = useNavigate();
+const strengthLevels = [
+  { label: "Too short",  color: "bg-slate-200" },
+  { label: "Weak",       color: "bg-rose-400"  },
+  { label: "Fair",       color: "bg-amber-400" },
+  { label: "Good",       color: "bg-blue-400"  },
+  { label: "Strong",     color: "bg-emerald-500"},
+];
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    if (error) setError(""); // Instantly clear error buffers upon key changes
-  };
+const getStrength = (password) => {
+  let score = 0;
+  if (password.length >= 8)                          score++;
+  if (/[A-Z]/.test(password))                        score++;
+  if (/[0-9]/.test(password))                        score++;
+  if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
+  return score;
+};
+
+function Register() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", confirm: ""
+  });
+  const [error,    setError]    = useState("");
+  const [success,  setSuccess]  = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [showPass, setShowPass] = useState(false);
+
+  const strength = getStrength(form.password);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (loading) return; // Hardened request gate blocking concurrent API runs
+    setError("");
 
-    // Lightweight client-side sanity validation check
-    if (form.password.length < 6) {
-      setError("Password security constraints require at least 6 characters.");
-      return;
+    if (form.password !== form.confirm) {
+      return setError("Passwords do not match");
     }
 
     setLoading(true);
-    setError("");
-
     try {
-      await api.post("/auth/register", form);
-      navigate("/login");
+      const res = await api.post("/auth/register", {
+        name:     form.name,
+        email:    form.email,
+        password: form.password,
+      });
+      setSuccess(res.data);
     } catch (err) {
-      console.error("Registration onboarding channel fault", err);
-      setError(
-        err.response?.data?.message || 
-        "Registration could not be completed. Account might already exist."
-      );
+      setError(err.response?.data || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleGoogle = () => {
+    window.location.href =
+      "http://localhost:8080/oauth2/authorization/google";
+  };
+
   return (
-    <div className="min-h-screen w-full bg-[#030712] grid grid-cols-1 lg:grid-cols-2 select-none antialiased text-slate-200">
-      
-      {/* ── LEFT PANEL: MATCHING OVERLAY BRANDING CANVAS ── */}
-      {/* Automatically consumes 50% screen width to fill empty space elegantly on wide layouts */}
-      <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-[#0c0f24] via-[#141843] to-[#211947] relative overflow-hidden border-r border-white/5">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(99,102,241,0.08),transparent_50%)]" />
-        
-        {/* Branding Title Core */}
-        <Link to="/" className="flex items-center gap-2.5 w-fit relative z-10 focus:outline-none">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Terminal size={18} />
-          </div>
-          <span className="text-xl font-black text-white tracking-tight">PrepForge</span>
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-[#1e1b6e] to-[#4c2d8a] flex items-center justify-center px-4 py-10">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8">
 
-        {/* Center Marketing Copy Block */}
-        <div className="space-y-6 max-w-md relative z-10 my-auto">
-          <div className="space-y-2">
-            <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase bg-indigo-500/10 border border-indigo-400/20 px-3 py-1 rounded-full">
-              Onboarding Infrastructure
-            </span>
-            <h1 className="text-4xl font-black text-white tracking-tight leading-tight">
-              Join the Placement Readiness Ecosystem
-            </h1>
-          </div>
-          <p className="text-slate-400 text-xs font-medium leading-relaxed">
-            Initialize your persistent profile today to unlock unified performance evaluation graphs, custom algorithmic tracking sheets, and targeted revision matrices.
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-2">⚒️</div>
+          <h1 className="text-2xl font-black text-slate-800">
+            Create Account
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Join PrepForge and start your placement prep
           </p>
+        </div>
 
-          {/* Value Propositions Group */}
-          <div className="space-y-3 pt-2">
-            {[
-              "100% Free Complete Placement Suite Access",
-              "Dynamic Candidate Performance Audit Logs",
-              "AI Simulation Core Matching Major Indian Tech Brands"
-            ].map((text, idx) => (
-              <div key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-300">
-                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                <span>{text}</span>
+        {success ? (
+          <div className="text-center py-6">
+            <div className="text-5xl mb-4">📧</div>
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+              Check your email!
+            </h3>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              {success}
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              className="mt-6 px-6 py-2.5 bg-indigo-600 text-white rounded-full text-sm font-semibold hover:bg-indigo-700 transition"
+            >
+              Go to Login
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Google Button */}
+            <button
+              onClick={handleGoogle}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition mb-6"
+            >
+              <img
+                src="https://www.google.com/favicon.ico"
+                alt="Google"
+                className="w-4 h-4"
+              />
+              Continue with Google
+            </button>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex-1 h-px bg-slate-100" />
+              <span className="text-xs text-slate-400 font-medium">
+                or register with email
+              </span>
+              <div className="flex-1 h-px bg-slate-100" />
+            </div>
+
+            {error && (
+              <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-xl mb-4 leading-relaxed">
+                {error}
               </div>
-            ))}
-          </div>
-        </div>
+            )}
 
-        {/* Bottom System Footer */}
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide relative z-10">
-          Engineered with precision for freshers · PrepForge 2026
-        </p>
-      </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
 
-      {/* ── RIGHT PANEL: THE REGISTRATION FORM INTERFACE ── */}
-      {/* Keeps form components centered cleanly, scaling perfectly from mobile up to desktop grids */}
-      <div className="flex flex-col justify-center items-center px-6 py-12 relative bg-[#060814]">
-        <div className="absolute top-1/4 right-1/4 w-72 h-72 bg-indigo-500/[0.02] blur-[100px] rounded-full pointer-events-none" />
-        
-        {/* Mobile-Only Header Branding Navbar */}
-        <div className="text-center space-y-2 mb-8 lg:hidden">
-          <Link to="/" className="inline-flex items-center gap-2.5 focus:outline-none">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-lg">
-              <Terminal size={18} />
-            </div>
-            <span className="text-xl font-black text-white tracking-tight">PrepForge</span>
-          </Link>
-        </div>
-
-        <div className="w-full max-w-[400px] space-y-6 relative z-10">
-          
-          {/* Card Header Text */}
-          <div className="space-y-1.5 text-center lg:text-left">
-            <h2 className="text-2xl font-black text-white tracking-tight">Create Account</h2>
-            <p className="text-xs font-medium text-slate-400">Initialize your free entry details to start practicing modules.</p>
-          </div>
-
-          {/* Hardened Exception Alert Dialog */}
-          {error && (
-            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold p-4 rounded-xl flex items-center gap-2.5 animate-in fade-in zoom-in-95 duration-200">
-              <AlertTriangle size={14} className="shrink-0 text-rose-500" />
-              <p className="leading-tight">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
-            {/* FULL NAME NODE */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Candidate Full Name
-              </label>
-              <div className="relative">
-                <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              {/* Name */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Full Name
+                </label>
                 <input
                   type="text"
-                  name="name"
                   placeholder="Sakshi Sharma"
-                  value={form.name}
-                  onChange={handleChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 text-xs font-bold bg-[#111322] border border-white/5 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                  className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 />
               </div>
-            </div>
 
-            {/* EMAIL NODE */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Email Communications Target
-              </label>
-              <div className="relative">
-                <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              {/* Email */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Email Address
+                </label>
                 <input
                   type="email"
-                  name="email"
-                  placeholder="name@domain.com"
+                  placeholder="you@example.com"
+                  required
                   value={form.email}
-                  onChange={handleChange}
-                  required
-                  className="w-full pl-10 pr-4 py-3 text-xs font-bold bg-[#111322] border border-white/5 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  onChange={e => setForm({ ...form, email: e.target.value })}
+                  className="px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
                 />
               </div>
-            </div>
 
-            {/* PASSWORD NODE WITH ACTIVE TOGGLE MASK */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Security Password String
-              </label>
-              <div className="relative">
-                <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+              {/* Password */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    placeholder="Min 8 chars, uppercase, number, symbol"
+                    required
+                    value={form.password}
+                    onChange={e => setForm({ ...form, password: e.target.value })}
+                    className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-semibold"
+                  >
+                    {showPass ? "Hide" : "Show"}
+                  </button>
+                </div>
+
+                {/* Strength indicator */}
+                {form.password && (
+                  <div className="mt-2">
+                    <div className="flex gap-1 mb-1">
+                      {[1, 2, 3, 4].map(i => (
+                        <div key={i}
+                          className={`h-1.5 flex-1 rounded-full transition-all ${
+                            strength >= i
+                              ? strengthLevels[strength].color
+                              : "bg-slate-100"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-[11px] font-semibold ${
+                      strength <= 1 ? "text-rose-500" :
+                      strength === 2 ? "text-amber-500" :
+                      strength === 3 ? "text-blue-500" :
+                      "text-emerald-500"
+                    }`}>
+                      {strengthLevels[strength]?.label}
+                    </p>
+                  </div>
+                )}
+
+                {/* Requirements */}
+                <div className="mt-2 grid grid-cols-2 gap-1">
+                  {[
+                    { label: "8+ characters",    pass: form.password.length >= 8              },
+                    { label: "Uppercase letter",  pass: /[A-Z]/.test(form.password)            },
+                    { label: "Number",            pass: /[0-9]/.test(form.password)            },
+                    { label: "Special character", pass: /[!@#$%^&*]/.test(form.password)       },
+                  ].map((req, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className={`text-[10px] ${req.pass ? "text-emerald-500" : "text-slate-300"}`}>
+                        {req.pass ? "✓" : "○"}
+                      </span>
+                      <span className={`text-[11px] ${req.pass ? "text-emerald-600" : "text-slate-400"}`}>
+                        {req.label}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Confirm Password
+                </label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  placeholder="••••••••••••"
-                  value={form.password}
-                  onChange={handleChange}
+                  type="password"
+                  placeholder="Re-enter your password"
                   required
-                  className="w-full pl-10 pr-11 py-3 text-xs font-bold bg-[#111322] border border-white/5 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/50 transition-all placeholder:text-slate-600"
+                  value={form.confirm}
+                  onChange={e => setForm({ ...form, confirm: e.target.value })}
+                  className={`px-4 py-3 text-sm bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition ${
+                    form.confirm && form.confirm !== form.password
+                      ? "border-rose-300 bg-rose-50"
+                      : "border-slate-200"
+                  }`}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-slate-300 rounded-lg transition-colors focus:outline-none"
-                >
-                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
+                {form.confirm && form.confirm !== form.password && (
+                  <p className="text-xs text-rose-500 font-medium">
+                    Passwords do not match
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* SUBMIT ACTION HANDLING ELEMENT */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-950/20 disabled:opacity-50 disabled:cursor-not-allowed text-xs tracking-wide uppercase transition-all mt-2 focus:outline-none"
-            >
-              {loading ? (
-                <span className="inline-flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span>Registering Profile Context...</span>
-                </span>
-              ) : (
-                <>
-                  <span>Initialize Account Credentials</span>
-                  <ArrowRight size={14} />
-                </>
-              )}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading || strength < 3}
+                className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-violet-700 transition disabled:opacity-60 text-sm mt-2"
+              >
+                {loading ? "Creating account..." : "Create Account →"}
+              </button>
+            </form>
 
-          {/* Inbound Route Toggles Footer */}
-          <div className="space-y-4 pt-2 text-center">
-            <p className="text-xs font-medium text-slate-500">
-              Already possess active profile parameters?{" "}
-              <Link to="/login" className="text-indigo-400 font-bold hover:text-indigo-300 hover:underline transition-all">
-                Sign In Instead
+            <p className="text-center text-sm text-slate-500 mt-6">
+              Already have an account?{" "}
+              <Link to="/login"
+                className="text-indigo-600 font-semibold hover:text-indigo-800 transition">
+                Sign in
               </Link>
             </p>
-            <Link to="/" className="text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors inline-flex items-center gap-1 focus:outline-none">
-              ← Abort and Return Home
-            </Link>
-          </div>
-
-        </div>
+          </>
+        )}
       </div>
-
     </div>
   );
 }

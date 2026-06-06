@@ -1,140 +1,72 @@
-import { useEffect, useState } from "react";
-import { Link, Navigate } from "react-router-dom";
-import api from "./services/api"; // Handled direct file structure matching
-import AdminLayout from "./AdminLayout";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
-const quickActions = [
-  { icon: "📝", label: "Add Note",      path: "/admin/notes",     color: "bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10 border-indigo-500/20"  },
-  { icon: "❓", label: "Add Question",  path: "/admin/questions", color: "bg-blue-500/5 text-blue-400 hover:bg-blue-500/10 border-blue-500/20"          },
-  { icon: "🧮", label: "Add Quiz Q",    path: "/admin/aptitude",  color: "bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 border-amber-500/20"      },
-  { icon: "👥", label: "View Users",    path: "/admin/users",     color: "bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 border-emerald-500/20"},
+const navItems = [
+  { icon: "📊", label: "Dashboard",   path: "/admin" },
+  { icon: "📝", label: "Notes",       path: "/admin/notes" },
+  { icon: "❓", label: "Questions",   path: "/admin/questions" },
+  { icon: "🧮", label: "Aptitude",    path: "/admin/aptitude" },
+  { icon: "💻", label: "Coding",      path: "/admin/coding" },
+  { icon: "📋", label: "MCQ",         path: "/admin/mcq" },
+  { icon: "🎭", label: "Mock Sets",   path: "/admin/mock" },
+  { icon: "👥", label: "Users",       path: "/admin/users" },
 ];
 
-function AdminDashboard() {
-  const [stats, setStats] = useState({ users: 0, notes: 0, questions: 0, aptitude: 0 });
-  const [loading, setLoading] = useState(true);
+function AdminLayout({ children, currentViewTitle }) {
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
-  const token = localStorage.getItem("token");
-  const role  = localStorage.getItem("role");
-
-  if (!token || role !== "ADMIN") return <Navigate to="/login" replace />;
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await api.get("/admin/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setStats(res.data);
-      } catch (err) {
-        console.error("Failed to fetch administrative platform insights:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [token]);
-
-  const statCards = [
-    { label: "Total Users",   value: stats.users ?? 0,     icon: "👥", dotColor: "bg-indigo-500",  iconBg: "bg-indigo-500/10 text-indigo-400"  },
-    { label: "Total Notes",   value: stats.notes ?? 0,     icon: "📚", dotColor: "bg-blue-500",    iconBg: "bg-blue-500/10 text-blue-400"      },
-    { label: "Interview Qs",  value: stats.questions ?? 0, icon: "🎤", dotColor: "bg-emerald-500", iconBg: "bg-emerald-500/10 text-emerald-400"},
-    { label: "Aptitude Qs",   value: stats.aptitude ?? 0,  icon: "🧮", dotColor: "bg-amber-500",   iconBg: "bg-amber-500/10 text-amber-400"    },
-  ];
-
-  const modulesData = [
-    { icon: "📚", title: "Notes", desc: `${stats.notes ?? 0} notes published`, path: "/admin/notes", badge: "CRUD + File Upload", color: "border-slate-800/80 bg-[#111827] hover:border-slate-700", badgeColor: "bg-indigo-500/10 text-indigo-400" },
-    { icon: "🎤", title: "Interview Questions", desc: `${stats.questions ?? 0} questions published`, path: "/admin/questions", badge: "CRUD", color: "border-slate-800/80 bg-[#111827] hover:border-slate-700", badgeColor: "bg-blue-500/10 text-blue-400" },
-    { icon: "🧮", title: "Aptitude Quiz", desc: `${stats.aptitude ?? 0} questions in bank`, path: "/admin/aptitude", badge: "CRUD", color: "border-slate-800/80 bg-[#111827] hover:border-slate-700", badgeColor: "bg-amber-500/10 text-amber-400" },
-    { icon: "👥", title: "Users", desc: `${stats.users ?? 0} registered users`, path: "/admin/users", badge: "View + Role Management", color: "border-slate-800/80 bg-[#111827] hover:border-slate-700", badgeColor: "bg-emerald-500/10 text-emerald-400" },
-  ];
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
 
   return (
-    <AdminLayout currentViewTitle="Admin Dashboard 👑">
-      <div className="p-8 max-w-[1600px] mx-auto space-y-10">
+    <div className="min-h-screen bg-[#0d131f] flex">
 
-        {/* ── Stat Analytics Grid ── */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((card) => (
-            <div
-              key={card.label}
-              className="bg-[#111827] rounded-2xl border border-slate-800/60 p-6 shadow-md hover:border-slate-700 transition-all duration-200"
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#111827] border-r border-slate-800/60 flex flex-col fixed h-full">
+        <div className="p-6 border-b border-slate-800/60">
+          <h1 className="text-lg font-black text-white">⚒️ PrepForge</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Admin Panel</p>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 ${
+                location.pathname === item.path
+                  ? "bg-indigo-500/20 text-indigo-400"
+                  : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+              }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-11 h-11 rounded-xl ${card.iconBg} flex items-center justify-center text-xl font-medium`}>
-                  {card.icon}
-                </div>
-                <div className={`w-2.5 h-2.5 rounded-full ${card.dotColor}`} />
-              </div>
-              {loading ? (
-                <div className="h-9 bg-slate-800 rounded-lg animate-pulse w-20 mb-1" />
-              ) : (
-                <h3 className="text-3xl font-bold text-white tracking-tight">{card.value}</h3>
-              )}
-              <p className="text-[11px] font-bold text-slate-400 mt-1 tracking-wide uppercase">{card.label}</p>
-            </div>
+              <span>{item.icon}</span>
+              {item.label}
+            </Link>
           ))}
-        </section>
+        </nav>
 
-        {/* ── Quick Interaction Modules ── */}
-        <section>
-          <div className="mb-4">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Quick Actions</h3>
-            <p className="text-slate-500 text-xs">Jump directly into content routing triggers</p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickActions.map((action) => (
-              <Link
-                key={action.label}
-                to={action.path}
-                className={`flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border font-bold text-sm transition-all duration-150 shadow-sm hover:-translate-y-0.5 ${action.color}`}
-              >
-                <span className="text-2xl mb-0.5">{action.icon}</span>
-                {action.label}
-              </Link>
-            ))}
-          </div>
-        </section>
+        <div className="p-4 border-t border-slate-800/60">
+          <button
+            onClick={handleLogout}
+            className="w-full px-3 py-2.5 text-sm font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all duration-150 text-left"
+          >
+            🚪 Logout
+          </button>
+        </div>
+      </aside>
 
-        {/* ── System Core Modules ── */}
-        <section>
-          <div className="mb-4">
-            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-wide">Manage Modules</h3>
-            <p className="text-slate-500 text-xs">Full transactional system orchestration access control</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {modulesData.map((mod) => (
-              <Link
-                key={mod.title}
-                to={mod.path}
-                className={`rounded-2xl border p-5 flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 group ${mod.color}`}
-              >
-                <div className="w-12 h-12 rounded-xl bg-[#0d131f] flex items-center justify-center text-2xl border border-slate-800/40 group-hover:bg-slate-800 transition-colors duration-200">
-                  {mod.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors duration-150">
-                      {mod.title}
-                    </h4>
-                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full tracking-wide ${mod.badgeColor}`}>
-                      {mod.badge}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400 font-medium truncate">{mod.desc}</p>
-                </div>
-                <span className="text-slate-500 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all duration-150 text-xl font-bold pr-1">
-                  →
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
+      {/* Main content */}
+      <main className="flex-1 ml-64">
+        <header className="sticky top-0 z-10 bg-[#111827]/80 backdrop-blur border-b border-slate-800/60 px-8 py-4">
+          <h2 className="text-sm font-bold text-slate-300">{currentViewTitle}</h2>
+        </header>
+        <div>{children}</div>
+      </main>
 
-      </div>
-    </AdminLayout>
+    </div>
   );
 }
 
-export default AdminDashboard;
+export default AdminLayout;
