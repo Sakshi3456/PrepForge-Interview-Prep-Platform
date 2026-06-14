@@ -1,24 +1,16 @@
 import { useEffect, useState } from "react";
+import { Search, X, CheckCircle2, Users, User, Crown, Shield } from "lucide-react";
 import api from "../services/api";
-import { Link } from "react-router-dom";
-
-const navItems = [
-  { icon: "📊", label: "Dashboard",          path: "/admin"           },
-  { icon: "📚", label: "Manage Notes",        path: "/admin/notes"     },
-  { icon: "🎤", label: "Interview Questions", path: "/admin/questions" },
-  { icon: "💻", label: "Coding Questions",    path: "/admin/coding"    },
-  { icon: "📝", label: "Technical MCQ",       path: "/admin/mcq"       },
-  { icon: "👥", label: "Manage Users",        path: "/admin/users"     },
-  { icon: "🧮", label: "Aptitude Quiz",       path: "/admin/aptitude"  },
-];
+import AdminLayout from "../AdminLayout";
 
 function AdminUsers() {
-  const [users, setUsers]               = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [search, setSearch]             = useState("");
-  const [toast, setToast]               = useState(null);
+  const [users,         setUsers]         = useState([]);
+  const [loading,       setLoading]       = useState(true);
+  const [search,        setSearch]        = useState("");
+  const [toast,         setToast]         = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [roleConfirm, setRoleConfirm]   = useState(null); // { id, newRole }
+  const [roleConfirm,   setRoleConfirm]   = useState(null);
+  const [filterRole,    setFilterRole]    = useState("All");
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -32,11 +24,8 @@ function AdminUsers() {
     try {
       const res = await api.get("/admin/users");
       setUsers(res.data);
-    } catch {
-      showToast("Failed to fetch users", "error");
-    } finally {
-      setLoading(false);
-    }
+    } catch { showToast("Failed to fetch users", "error"); }
+    finally { setLoading(false); }
   };
 
   const updateRole = async (id, role) => {
@@ -45,9 +34,7 @@ function AdminUsers() {
       showToast(`Role updated to ${role}`);
       setRoleConfirm(null);
       fetchUsers();
-    } catch {
-      showToast("Role update failed", "error");
-    }
+    } catch { showToast("Role update failed", "error"); }
   };
 
   const deleteUser = async (id) => {
@@ -56,49 +43,57 @@ function AdminUsers() {
       showToast("User deleted");
       setDeleteConfirm(null);
       fetchUsers();
-    } catch {
-      showToast("Delete failed", "error");
-    }
+    } catch { showToast("Delete failed", "error"); }
   };
 
-  const filtered = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchSearch = u.name?.toLowerCase().includes(search.toLowerCase()) ||
+                        u.email?.toLowerCase().includes(search.toLowerCase());
+    const matchRole   = filterRole === "All" || u.role === filterRole;
+    return matchSearch && matchRole;
+  });
 
   const adminCount = users.filter(u => u.role === "ADMIN").length;
   const userCount  = users.filter(u => u.role === "USER").length;
 
-  return (
-    <div className="flex min-h-screen bg-slate-50">
+  // Generate avatar color from name
+  const avatarColor = (name, role) => role === "ADMIN"
+    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+    : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30";
 
-      {/* Toast */}
+  return (
+    <AdminLayout>
+
+      {/* ── Toast ── */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium ${
-          toast.type === "error" ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-bold border ${
+          toast.type === "error"
+            ? "bg-[#0d0f28] border-rose-500/30 text-rose-300"
+            : "bg-[#0d0f28] border-emerald-500/30 text-emerald-300"
         }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span> {toast.msg}
+          {toast.type === "error" ? <X size={14}/> : <CheckCircle2 size={14}/>}
+          {toast.msg}
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* ── Delete modal ── */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-xl">🗑️</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X size={20} className="text-rose-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 text-center">Delete User?</h3>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-5">
+            <h3 className="text-base font-bold text-white text-center">Delete User?</h3>
+            <p className="text-xs text-slate-500 text-center mt-1 mb-5">
               This will permanently remove the user and all their data.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-white/[0.04] border border-white/[0.08] text-slate-400 rounded-xl hover:bg-white/[0.08] transition">
                 Cancel
               </button>
               <button onClick={() => deleteUser(deleteConfirm)}
-                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-400 transition">
                 Delete
               </button>
             </div>
@@ -106,24 +101,27 @@ function AdminUsers() {
         </div>
       )}
 
-      {/* Role Confirm Modal */}
+      {/* ── Role confirm modal ── */}
       {roleConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-xl">👑</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Crown size={20} className="text-amber-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 text-center">Change Role?</h3>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-5">
-              Set this user's role to <span className="font-bold text-indigo-600">{roleConfirm.newRole}</span>?
+            <h3 className="text-base font-bold text-white text-center">Change Role?</h3>
+            <p className="text-xs text-slate-500 text-center mt-1 mb-5">
+              Set this user's role to{" "}
+              <span className={`font-bold ${roleConfirm.newRole === "ADMIN" ? "text-amber-400" : "text-indigo-400"}`}>
+                {roleConfirm.newRole}
+              </span>?
             </p>
             <div className="flex gap-3">
               <button onClick={() => setRoleConfirm(null)}
-                className="flex-1 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-white/[0.04] border border-white/[0.08] text-slate-400 rounded-xl hover:bg-white/[0.08] transition">
                 Cancel
               </button>
               <button onClick={() => updateRole(roleConfirm.id, roleConfirm.newRole)}
-                className="flex-1 py-2.5 text-sm font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-amber-500 text-white rounded-xl hover:bg-amber-400 transition">
                 Confirm
               </button>
             </div>
@@ -131,157 +129,140 @@ function AdminUsers() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col shrink-0 h-screen sticky top-0">
-        <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">⚒️</span>
-            <span className="text-xl font-black">PrepForge</span>
-          </div>
-          <span className="text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase">
-            Admin Panel
-          </span>
+      <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+
+        {/* ── Page header ── */}
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight">Manage Users</h2>
+          <p className="text-xs text-slate-500 mt-1">{users.length} registered users</p>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1">
-          {navItems.map(item => (
-            <Link key={item.label} to={item.path}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
-              <span>{item.icon}</span> {item.label}
-            </Link>
+
+        {/* ── Stats row ── */}
+        <div className="grid grid-cols-3 gap-4">
+          {[
+            { label: "Total Users",   value: users.length, icon: <Users size={18}/>,  cls: "text-white border-white/10 bg-white/[0.03]"           },
+            { label: "Regular Users", value: userCount,    icon: <User size={18}/>,   cls: "text-indigo-400 border-indigo-500/20 bg-indigo-500/[0.05]" },
+            { label: "Admins",        value: adminCount,   icon: <Crown size={18}/>,  cls: "text-amber-400 border-amber-500/20 bg-amber-500/[0.05]"    },
+          ].map(s => (
+            <div key={s.label} className={`border rounded-2xl p-5 ${s.cls}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="opacity-60">{s.icon}</div>
+              </div>
+              <p className="text-3xl font-black tracking-tight">{loading ? "—" : s.value}</p>
+              <p className="text-[11px] font-bold uppercase tracking-wider opacity-60 mt-1">{s.label}</p>
+            </div>
           ))}
-        </nav>
-        <div className="px-4 py-5 border-t border-white/10">
-          <button onClick={() => { localStorage.clear(); window.location.href = "/"; }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition">
-            <span>🚪</span> Logout
-          </button>
-        </div>
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 overflow-auto">
-
-        {/* Top Bar */}
-        <div className="bg-white border-b border-slate-100 px-8 py-4 shadow-sm">
-          <h2 className="text-xl font-black text-slate-800">Manage Users 👥</h2>
-          <p className="text-slate-500 text-xs mt-0.5">{users.length} registered users</p>
         </div>
 
-        <div className="p-8">
+        {/* ── Search + filter row ── */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+            <input type="text" placeholder="Search by name or email..."
+              value={search} onChange={e => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#0d0f28] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition" />
+          </div>
+          {/* Role filter pills */}
+          <div className="flex gap-1.5">
+            {["All","USER","ADMIN"].map(r => (
+              <button key={r} onClick={() => setFilterRole(r)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+                  filterRole === r
+                    ? r === "ADMIN"
+                      ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                      : r === "USER"
+                        ? "bg-indigo-500/20 border-indigo-500/40 text-indigo-300"
+                        : "bg-white/[0.08] border-white/20 text-white"
+                    : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:text-slate-300"
+                }`}>
+                {r === "ADMIN" ? "👑 Admins" : r === "USER" ? "👤 Users" : "All"}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-5 mb-8">
-            {[
-              { label: "Total Users",  value: users.length,  icon: "👥", color: "bg-indigo-50 text-indigo-600"  },
-              { label: "Regular Users",value: userCount,     icon: "👤", color: "bg-slate-50 text-slate-600"    },
-              { label: "Admins",       value: adminCount,    icon: "👑", color: "bg-amber-50 text-amber-600"    },
-            ].map(s => (
-              <div key={s.label} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-                <div className={`w-10 h-10 rounded-xl ${s.color} flex items-center justify-center text-lg mb-3`}>
-                  {s.icon}
+        <p className="text-xs text-slate-600">{filtered.length} of {users.length} users</p>
+
+        {/* ── Users list ── */}
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="bg-[#0d0f28] rounded-2xl border border-white/[0.06] p-4 animate-pulse">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-white/[0.06] rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-white/[0.06] rounded w-1/4" />
+                    <div className="h-2.5 bg-white/[0.04] rounded w-1/3" />
+                  </div>
                 </div>
-                <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">{s.label}</p>
               </div>
             ))}
           </div>
-
-          {/* Search */}
-          <div className="relative mb-5">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input type="text" placeholder="Search by name or email..."
-              value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition shadow-sm" />
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 bg-[#0d0f28] border border-dashed border-white/[0.06] rounded-2xl">
+            <Search size={32} className="mx-auto text-slate-700 mb-3" />
+            <p className="text-slate-400 font-medium text-sm">No users found</p>
+            <p className="text-slate-600 text-xs mt-1">Try a different search or filter</p>
           </div>
+        ) : (
+          <div className="space-y-2.5">
+            {filtered.map(user => (
+              <div key={user.id}
+                className="bg-[#0d0f28] border border-white/[0.06] hover:border-white/[0.10] rounded-2xl transition-all p-4">
+                <div className="flex items-center gap-4">
 
-          <p className="text-xs text-slate-400 mb-4">{filtered.length} users</p>
-
-          {/* Users List */}
-          {loading ? (
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-slate-100 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 bg-slate-100 rounded w-1/4" />
-                      <div className="h-2.5 bg-slate-100 rounded w-1/3" />
-                    </div>
+                  {/* Avatar */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${avatarColor(user.name, user.role)}`}>
+                    {user.name?.charAt(0).toUpperCase()}
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-slate-100">
-              <p className="text-4xl mb-3">🔍</p>
-              <p className="text-slate-500 font-medium">No users found</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filtered.map(user => (
-                <div key={user.id}
-                  className="bg-white rounded-2xl border border-slate-100 hover:shadow-md transition-all p-4">
-                  <div className="flex items-center gap-4">
 
-                    {/* Avatar */}
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${
-                      user.role === "ADMIN"
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-indigo-100 text-indigo-600"
-                    }`}>
-                      {user.name?.charAt(0).toUpperCase()}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-slate-800">{user.name}</p>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          user.role === "ADMIN"
-                            ? "bg-amber-100 text-amber-600"
-                            : "bg-slate-100 text-slate-500"
-                        }`}>
-                          {user.role === "ADMIN" ? "👑 Admin" : "👤 User"}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold text-slate-200">{user.name}</p>
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        user.role === "ADMIN"
+                          ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                          : "bg-white/[0.04] border-white/[0.08] text-slate-500"
+                      }`}>
+                        {user.role === "ADMIN" ? <><Crown size={9}/>Admin</> : <><User size={9}/>User</>}
+                      </span>
+                      {/* Verified badge if applicable */}
+                      {user.verified && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                          <CheckCircle2 size={9}/>Verified
                         </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5 truncate">{user.email}</p>
-                      <p className="text-[10px] text-slate-300 mt-0.5">ID: #{user.id}</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 shrink-0">
-                      {user.role === "USER" ? (
-                        <button
-                          onClick={() => setRoleConfirm({ id: user.id, newRole: "ADMIN" })}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-50 text-amber-600 border border-amber-200 hover:bg-amber-100 transition"
-                        >
-                          👑 Make Admin
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => setRoleConfirm({ id: user.id, newRole: "USER" })}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition"
-                        >
-                          👤 Make User
-                        </button>
                       )}
-                      <button
-                        onClick={() => setDeleteConfirm(user.id)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 text-rose-500 border border-rose-100 hover:bg-rose-500 hover:text-white transition"
-                      >
-                        Delete
-                      </button>
                     </div>
+                    <p className="text-xs text-slate-500 mt-0.5 truncate">{user.email}</p>
+                    <p className="text-[10px] text-slate-700 mt-0.5">ID: #{user.id}</p>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 shrink-0">
+                    {user.role === "USER" ? (
+                      <button onClick={() => setRoleConfirm({ id: user.id, newRole: "ADMIN" })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition">
+                        <Crown size={12}/>Make Admin
+                      </button>
+                    ) : (
+                      <button onClick={() => setRoleConfirm({ id: user.id, newRole: "USER" })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-white/[0.04] border border-white/[0.07] text-slate-400 hover:bg-white/[0.08] transition">
+                        <User size={12}/>Make User
+                      </button>
+                    )}
+                    <button onClick={() => setDeleteConfirm(user.id)}
+                      className="px-3 py-1.5 text-xs font-bold rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition">
+                      Delete
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

@@ -45,7 +45,8 @@ public class SecurityConfig {
                                 "/api/mock/**",
                                 "/api/progress/**",
                                 "/api/profile/**",
-                                "/api/admin/stats",
+                                "/api/bookmarks/**",
+                                "/api/admin/**",
                                 "/login/oauth2/**",
                                 "/oauth2/**"
                         ).permitAll()

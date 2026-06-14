@@ -14,16 +14,21 @@ public class QuizSession {
     private Long id;
 
     private Long userId;
+    private String category;
+    private Integer score;
+    private Integer total;
+    private Integer timeTaken;
+    private Double accuracy;
 
-    private String category;    // which category was attempted
+    // FIX: Use @PrePersist so timestamp is set at actual save time
+    // Field initializer = set at object creation time (can be null after JSON deserialization)
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime attemptedAt;
 
-    private Integer score;      // how many correct
-
-    private Integer total;      // total questions attempted
-
-    private Integer timeTaken;  // in seconds
-
-    private Double accuracy;    // score/total * 100
-
-    private LocalDateTime attemptedAt = LocalDateTime.now();
+    @PrePersist
+    public void prePersist() {
+        if (this.attemptedAt == null) {
+            this.attemptedAt = LocalDateTime.now();
+        }
+    }
 }

@@ -1,40 +1,45 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { X, CheckCircle2, ChevronDown, ChevronUp, Trophy, Clock, Search } from "lucide-react";
 import api from "../services/api";
+import AdminLayout from "../AdminLayout";
 
-const navItems = [
-  { icon: "📊", label: "Dashboard",          path: "/admin"            },
-  { icon: "📚", label: "Manage Notes",        path: "/admin/notes"      },
-  { icon: "🎤", label: "Interview Questions", path: "/admin/questions"  },
-  { icon: "💻", label: "Coding Questions",    path: "/admin/coding"     },
-  { icon: "📝", label: "Technical MCQ",       path: "/admin/mcq"        },
-  { icon: "👥", label: "Manage Users",        path: "/admin/users"      },
-  { icon: "🧮", label: "Aptitude Quiz",       path: "/admin/aptitude"   },
-  { icon: "🎯", label: "Mock Interviews",     path: "/admin/mock"       },
-];
+// ── Constants ─────────────────────────────────────────────────────────────────
+const COMPANIES   = ["TCS","Infosys","Wipro","Cognizant","Accenture","Amazon","Other"];
+const ROLES       = ["Java Developer","React Developer","Full Stack","Python Developer","General"];
+const DURATIONS   = [15, 30, 45, 60];
 
-const emptySetForm = {
-  title: "", company: "", role: "", difficulty: "", durationMinutes: 30,
+const diffBadge = {
+  Easy:   "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  Medium: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  Hard:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
 };
 
-const emptyQForm = {
-  sourceTable: "", sourceQuestionId: "",
+const qTypeBadge = {
+  MCQ:    "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  CODING: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  THEORY: "text-violet-400 bg-violet-500/10 border-violet-500/20",
 };
+
+const inputCls  = "w-full px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40 transition";
+const labelCls  = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
+const selectCls = inputCls + " appearance-none";
+
+const emptySetForm = { title: "", company: "", role: "", difficulty: "", durationMinutes: 30 };
+const emptyQForm   = { sourceTable: "", sourceQuestionId: "" };
 
 function AdminMockSets() {
-  const [sets, setSets]             = useState([]);
-  const [setForm, setSetForm]       = useState(emptySetForm);
-  const [editSetId, setEditSetId]   = useState(null);
-  const [expandedSet, setExpandedSet] = useState(null);
-  const [setQuestions, setSetQuestions] = useState({});
-  const [qForm, setQForm]           = useState(emptyQForm);
-  const [addingTo, setAddingTo]     = useState(null);
-  const [toast, setToast]           = useState(null);
+  const [sets,          setSets]          = useState([]);
+  const [setForm,       setSetForm]       = useState(emptySetForm);
+  const [editSetId,     setEditSetId]     = useState(null);
+  const [expandedSet,   setExpandedSet]   = useState(null);
+  const [setQuestions,  setSetQuestions]  = useState({});
+  const [qForm,         setQForm]         = useState(emptyQForm);
+  const [addingTo,      setAddingTo]      = useState(null);
+  const [toast,         setToast]         = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-
-  // Source question search
-  const [sourceList, setSourceList]     = useState([]);
-  const [sourceSearch, setSourceSearch] = useState("");
+  const [sourceList,    setSourceList]    = useState([]);
+  const [sourceSearch,  setSourceSearch]  = useState("");
+  const [formOpen,      setFormOpen]      = useState(true);
 
   useEffect(() => { fetchSets(); }, []);
 
@@ -44,8 +49,10 @@ function AdminMockSets() {
   };
 
   const fetchSets = async () => {
-    const res = await api.get("/mock/sets");
-    setSets(res.data);
+    try {
+      const res = await api.get("/mock/sets");
+      setSets(res.data);
+    } catch { showToast("Failed to load sets", "error"); }
   };
 
   const fetchSetQuestions = async (setId) => {
@@ -55,9 +62,8 @@ function AdminMockSets() {
 
   const saveSet = async (e) => {
     e.preventDefault();
-    if (!setForm.title || !setForm.company) {
+    if (!setForm.title || !setForm.company)
       return showToast("Title and company are required", "error");
-    }
     try {
       if (editSetId) {
         await api.put(`/mock/sets/${editSetId}`, setForm);
@@ -69,9 +75,7 @@ function AdminMockSets() {
       }
       setSetForm(emptySetForm);
       fetchSets();
-    } catch {
-      showToast("Something went wrong", "error");
-    }
+    } catch { showToast("Something went wrong", "error"); }
   };
 
   const deleteSet = async (id) => {
@@ -88,10 +92,12 @@ function AdminMockSets() {
       durationMinutes: set.durationMinutes,
     });
     setEditSetId(set.id);
+    setFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Search existing questions from source table
+  const cancelEdit = () => { setEditSetId(null); setSetForm(emptySetForm); };
+
   const searchSource = async (table, keyword) => {
     if (!table) return;
     try {
@@ -111,22 +117,17 @@ function AdminMockSets() {
         res = await api.get(`/coding/search?keyword=${keyword || ""}`);
         setSourceList(res.data.map(q => ({ id: q.id, text: q.title, type: "CODING" })));
       }
-    } catch {
-      console.error("Source search failed");
-    }
+    } catch { console.error("Source search failed"); }
   };
 
   const addQuestionToSet = async (setId, sourceId) => {
     try {
       await api.post(`/mock/sets/${setId}/questions`, {
-        sourceTable:       qForm.sourceTable,
-        sourceQuestionId:  sourceId,
+        sourceTable: qForm.sourceTable, sourceQuestionId: sourceId,
       });
-      showToast("Question added to set!");
+      showToast("Question added!");
       fetchSetQuestions(setId);
-    } catch {
-      showToast("Failed to add question", "error");
-    }
+    } catch { showToast("Failed to add question", "error"); }
   };
 
   const removeQuestionFromSet = async (setId, refId) => {
@@ -136,44 +137,43 @@ function AdminMockSets() {
   };
 
   const toggleExpand = (setId) => {
-    if (expandedSet === setId) {
-      setExpandedSet(null);
-    } else {
-      setExpandedSet(setId);
-      fetchSetQuestions(setId);
-    }
+    if (expandedSet === setId) { setExpandedSet(null); }
+    else { setExpandedSet(setId); fetchSetQuestions(setId); }
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <AdminLayout>
 
-      {/* Toast */}
+      {/* ── Toast ── */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium ${
-          toast.type === "error" ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-bold border ${
+          toast.type === "error"
+            ? "bg-[#0d0f28] border-rose-500/30 text-rose-300"
+            : "bg-[#0d0f28] border-emerald-500/30 text-emerald-300"
         }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span> {toast.msg}
+          {toast.type === "error" ? <X size={14}/> : <CheckCircle2 size={14}/>}
+          {toast.msg}
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* ── Delete modal ── */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-xl">🗑️</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X size={20} className="text-rose-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 text-center">Delete Set?</h3>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-5">
+            <h3 className="text-base font-bold text-white text-center">Delete Set?</h3>
+            <p className="text-xs text-slate-500 text-center mt-1 mb-5">
               This will delete the set and all its questions.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-white/[0.04] border border-white/[0.08] text-slate-400 rounded-xl hover:bg-white/[0.08] transition">
                 Cancel
               </button>
               <button onClick={() => deleteSet(deleteConfirm)}
-                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-400 transition">
                 Delete
               </button>
             </div>
@@ -181,212 +181,205 @@ function AdminMockSets() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col shrink-0 h-screen sticky top-0">
-        <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">⚒️</span>
-            <span className="text-xl font-black">PrepForge</span>
-          </div>
-          <span className="text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase">
-            Admin Panel
-          </span>
+      <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+
+        {/* ── Page header ── */}
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight">Mock Interview Sets</h2>
+          <p className="text-xs text-slate-500 mt-1">{sets.length} sets available</p>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <Link key={item.label} to={item.path}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
-              <span>{item.icon}</span> {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="px-4 py-5 border-t border-white/10">
-          <button onClick={() => { localStorage.clear(); window.location.href = "/"; }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition">
-            <span>🚪</span> Logout
+
+        {/* ── FORM — collapsible, full width ── */}
+        <div className="bg-[#0d0f28] border border-white/[0.06] rounded-2xl overflow-hidden">
+
+          <button onClick={() => setFormOpen(!formOpen)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition">
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${editSetId ? "bg-amber-400" : "bg-indigo-400"}`} />
+              <span className="text-sm font-bold text-slate-200">
+                {editSetId ? `Editing Set #${editSetId}` : "Create New Set"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {editSetId && (
+                <span onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 transition">
+                  Cancel Edit ✕
+                </span>
+              )}
+              {formOpen ? <ChevronUp size={16} className="text-slate-500"/> : <ChevronDown size={16} className="text-slate-500"/>}
+            </div>
           </button>
-        </div>
-      </div>
 
-      {/* Main */}
-      <div className="flex-1 overflow-auto">
-        <div className="bg-white border-b border-slate-100 px-8 py-4 shadow-sm">
-          <h2 className="text-xl font-black text-slate-800">Manage Mock Interview Sets 🎯</h2>
-          <p className="text-slate-500 text-xs mt-0.5">{sets.length} sets available</p>
-        </div>
+          {formOpen && (
+            <form onSubmit={saveSet} className="px-6 pb-6 border-t border-white/[0.05] space-y-4 pt-5">
 
-        <div className="p-8 grid grid-cols-1 xl:grid-cols-5 gap-8">
-
-          {/* LEFT — Create/Edit Set Form */}
-          <div className="xl:col-span-2 space-y-4">
-
-            {editSetId && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <span className="text-sm font-medium text-amber-700">✏️ Editing set #{editSetId}</span>
-                <button onClick={() => { setEditSetId(null); setSetForm(emptySetForm); }}
-                  className="text-xs text-amber-400 hover:text-amber-700">Cancel ✕</button>
+              {/* Row 1: Title (full width) */}
+              <div>
+                <label className={labelCls}>Title *</label>
+                <input value={setForm.title}
+                  onChange={e => setSetForm({ ...setForm, title: e.target.value })}
+                  placeholder="e.g. TCS NQT Full Prep Set"
+                  className={inputCls} />
               </div>
-            )}
 
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4">
-                {editSetId ? "✏️ Update Set" : "+ Create New Set"}
-              </h3>
-              <form onSubmit={saveSet} className="space-y-4">
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Title *</label>
-                  <input value={setForm.title}
-                    onChange={e => setSetForm({ ...setForm, title: e.target.value })}
-                    placeholder="e.g. TCS NQT Prep"
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Company *</label>
-                    <select value={setForm.company}
-                      onChange={e => setSetForm({ ...setForm, company: e.target.value })}
-                      className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-                      <option value="">Select</option>
-                      {["TCS","Infosys","Wipro","Cognizant","Accenture","Amazon","Other"].map(c =>
-                        <option key={c}>{c}</option>
-                      )}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Difficulty</label>
-                    <select value={setForm.difficulty}
-                      onChange={e => setSetForm({ ...setForm, difficulty: e.target.value })}
-                      className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-                      <option value="">Select</option>
-                      <option>Easy</option><option>Medium</option><option>Hard</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Target Role</label>
-                  <select value={setForm.role}
-                    onChange={e => setSetForm({ ...setForm, role: e.target.value })}
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-                    <option value="">Select</option>
-                    {["Java Developer","React Developer","Full Stack","Python Developer","General"].map(r =>
-                      <option key={r}>{r}</option>
-                    )}
+              {/* Row 2: Company + Difficulty + Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className={labelCls}>Company *</label>
+                  <select value={setForm.company}
+                    onChange={e => setSetForm({ ...setForm, company: e.target.value })}
+                    className={selectCls}>
+                    <option value="" className="bg-[#0d0f28]">Select company</option>
+                    {COMPANIES.map(c => <option key={c} className="bg-[#0d0f28]">{c}</option>)}
                   </select>
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration (minutes)</label>
+                <div>
+                  <label className={labelCls}>Difficulty</label>
+                  <select value={setForm.difficulty}
+                    onChange={e => setSetForm({ ...setForm, difficulty: e.target.value })}
+                    className={selectCls}>
+                    <option value="" className="bg-[#0d0f28]">Select</option>
+                    {["Easy","Medium","Hard"].map(d => <option key={d} className="bg-[#0d0f28]">{d}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Duration</label>
                   <select value={setForm.durationMinutes}
                     onChange={e => setSetForm({ ...setForm, durationMinutes: parseInt(e.target.value) })}
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-                    <option value={15}>15 minutes</option>
-                    <option value={30}>30 minutes</option>
-                    <option value={45}>45 minutes</option>
-                    <option value={60}>60 minutes</option>
+                    className={selectCls}>
+                    {DURATIONS.map(d => <option key={d} value={d} className="bg-[#0d0f28]">{d} minutes</option>)}
                   </select>
                 </div>
+              </div>
 
-                <button type="submit"
-                  className={`w-full py-3 rounded-xl text-sm font-bold text-white transition ${
-                    editSetId
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                      : "bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600"
-                  }`}>
-                  {editSetId ? "✓ Update Set" : "+ Create Set"}
-                </button>
-              </form>
-            </div>
+              {/* Row 3: Target Role */}
+              <div>
+                <label className={labelCls}>Target Role</label>
+                <select value={setForm.role}
+                  onChange={e => setSetForm({ ...setForm, role: e.target.value })}
+                  className={selectCls}>
+                  <option value="" className="bg-[#0d0f28]">Select role</option>
+                  {ROLES.map(r => <option key={r} className="bg-[#0d0f28]">{r}</option>)}
+                </select>
+              </div>
+
+              <button type="submit"
+                className={`px-8 py-3 rounded-xl text-sm font-bold text-white transition shadow-lg ${
+                  editSetId
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20"
+                    : "bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 shadow-indigo-500/20"
+                }`}>
+                {editSetId ? "✓ Update Set" : "+ Create Set"}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* ── SETS LIST ── */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-base font-bold text-white">All Sets</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{sets.length} sets</p>
           </div>
 
-          {/* RIGHT — Sets List */}
-          <div className="xl:col-span-3 space-y-4">
-            <p className="text-xs text-slate-400">{sets.length} sets</p>
+          {sets.length === 0 ? (
+            <div className="text-center py-16 bg-[#0d0f28] border border-dashed border-white/[0.06] rounded-2xl">
+              <Trophy size={32} className="mx-auto text-slate-700 mb-3" />
+              <p className="text-slate-400 font-medium text-sm">No sets yet</p>
+              <p className="text-slate-600 text-xs mt-1">Create your first interview set above</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {sets.map(set => (
+                <div key={set.id}
+                  className={`bg-[#0d0f28] rounded-2xl border transition-all duration-200 overflow-hidden ${
+                    editSetId === set.id
+                      ? "border-amber-500/40 shadow-lg shadow-amber-500/5"
+                      : "border-white/[0.06] hover:border-white/[0.10]"
+                  }`}>
 
-            {sets.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                <p className="text-4xl mb-3">📭</p>
-                <p className="text-slate-500 font-medium">No sets yet</p>
-                <p className="text-slate-400 text-sm mt-1">Create your first interview set</p>
-              </div>
-            ) : (
-              sets.map(set => (
-                <div key={set.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-
-                  {/* Set Header */}
+                  {/* Set card header */}
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-xs font-bold text-indigo-600">{set.company}</span>
-                          <span className="text-slate-200">•</span>
-                          <span className="text-xs text-slate-400">{set.role}</span>
-                          <span className="text-slate-200">•</span>
-                          <span className="text-xs text-slate-400">⏱ {set.durationMinutes} min</span>
+                      <div className="flex-1 min-w-0">
+                        {/* Meta row */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className="text-xs font-bold text-indigo-400">{set.company}</span>
+                          {set.role && (
+                            <>
+                              <span className="text-white/20">·</span>
+                              <span className="text-[11px] text-slate-500">{set.role}</span>
+                            </>
+                          )}
+                          <span className="text-white/20">·</span>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                            <Clock size={10}/>{set.durationMinutes} min
+                          </span>
+                          {set.difficulty && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${diffBadge[set.difficulty]}`}>
+                              {set.difficulty}
+                            </span>
+                          )}
+                          {editSetId === set.id && (
+                            <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold px-2 py-0.5 rounded-full">
+                              Editing
+                            </span>
+                          )}
                         </div>
-                        <h3 className="text-sm font-bold text-slate-800">{set.title}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">{set.difficulty}</p>
+                        <h3 className="text-sm font-bold text-slate-200">{set.title}</h3>
+                        {/* Question count */}
+                        {setQuestions[set.id] && (
+                          <p className="text-[11px] text-slate-600 mt-0.5">
+                            {setQuestions[set.id].length} question{setQuestions[set.id].length !== 1 ? "s" : ""}
+                          </p>
+                        )}
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button onClick={() => startEditSet(set)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/[0.04] border border-white/[0.07] text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/20 transition">
                           Edit
                         </button>
                         <button onClick={() => setDeleteConfirm(set.id)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition border border-rose-100">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition">
                           Delete
                         </button>
                       </div>
                     </div>
 
                     {/* Expand toggle */}
-                    <button
-                      onClick={() => toggleExpand(set.id)}
-                      className="text-xs text-indigo-400 hover:text-indigo-600 font-medium mt-2 transition"
-                    >
+                    <button onClick={() => toggleExpand(set.id)}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium mt-2.5 transition flex items-center gap-1">
                       {expandedSet === set.id
-                        ? `Hide questions ↑`
-                        : `Manage questions ↓ ${setQuestions[set.id] ? `(${setQuestions[set.id].length})` : ""}`
-                      }
+                        ? <><ChevronUp size={12}/>Hide questions</>
+                        : <><ChevronDown size={12}/>Manage questions {setQuestions[set.id] ? `(${setQuestions[set.id].length})` : ""}</>}
                     </button>
                   </div>
 
-                  {/* Expanded — Questions */}
+                  {/* ── Expanded questions panel ── */}
                   {expandedSet === set.id && (
-                    <div className="border-t border-slate-100 p-4 bg-slate-50 space-y-4">
+                    <div className="border-t border-white/[0.05] p-4 bg-white/[0.01] space-y-3">
 
-                      {/* Existing questions */}
+                      {/* Existing questions list */}
                       {setQuestions[set.id]?.length > 0 && (
                         <div className="space-y-2">
                           {setQuestions[set.id].map((q, i) => (
                             <div key={q.refId}
-                              className="flex items-start justify-between gap-3 bg-white rounded-xl p-3 border border-slate-100">
+                              className="flex items-start justify-between gap-3 bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
                               <div className="flex items-start gap-2 flex-1 min-w-0">
-                                <span className="text-xs font-bold text-slate-400 shrink-0 mt-0.5">
-                                  {i + 1}.
-                                </span>
+                                <span className="text-[10px] font-bold text-slate-600 shrink-0 mt-0.5">{i + 1}.</span>
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                      q.questionType === "MCQ"
-                                        ? "bg-blue-50 text-blue-600"
-                                        : q.questionType === "CODING"
-                                          ? "bg-emerald-50 text-emerald-600"
-                                          : "bg-violet-50 text-violet-600"
-                                    }`}>
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${qTypeBadge[q.questionType] || qTypeBadge.THEORY}`}>
                                       {q.questionType}
                                     </span>
-                                    <span className="text-[10px] text-slate-400">{q.sourceTable}</span>
+                                    <span className="text-[9px] text-slate-600">{q.sourceTable}</span>
                                   </div>
-                                  <p className="text-xs text-slate-700 line-clamp-2">{q.questionText}</p>
+                                  <p className="text-xs text-slate-400 line-clamp-2">{q.questionText}</p>
                                 </div>
                               </div>
-                              <button
-                                onClick={() => removeQuestionFromSet(set.id, q.refId)}
-                                className="text-xs text-rose-400 hover:text-rose-600 shrink-0 transition font-medium"
-                              >
+                              <button onClick={() => removeQuestionFromSet(set.id, q.refId)}
+                                className="text-xs text-rose-400 hover:text-rose-300 shrink-0 transition font-medium">
                                 Remove
                               </button>
                             </div>
@@ -396,62 +389,49 @@ function AdminMockSets() {
 
                       {/* Add question panel */}
                       {addingTo === set.id ? (
-                        <div className="bg-white rounded-xl border border-indigo-200 p-4 space-y-3">
-                          <h4 className="text-xs font-bold text-slate-700">Add Question from Existing Bank</h4>
+                        <div className="bg-white/[0.02] border border-indigo-500/20 rounded-xl p-4 space-y-3">
+                          <h4 className="text-xs font-bold text-slate-300">Add from Question Bank</h4>
 
-                          {/* Source table selector */}
-                          <select
-                            value={qForm.sourceTable}
+                          {/* Source selector */}
+                          <select value={qForm.sourceTable}
                             onChange={e => {
                               setQForm({ ...qForm, sourceTable: e.target.value });
-                              setSourceList([]);
-                              setSourceSearch("");
+                              setSourceList([]); setSourceSearch("");
                               searchSource(e.target.value, "");
                             }}
-                            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-                            <option value="">Select source module</option>
-                            <option value="INTERVIEW_QUESTION">Interview Questions (Theory/HR)</option>
-                            <option value="TECHNICAL_MCQ">Technical MCQ</option>
-                            <option value="APTITUDE">Aptitude Questions</option>
-                            <option value="CODING">Coding Questions</option>
+                            className={selectCls}>
+                            <option value="" className="bg-[#0d0f28]">Select source module</option>
+                            <option value="INTERVIEW_QUESTION" className="bg-[#0d0f28]">Interview Questions</option>
+                            <option value="TECHNICAL_MCQ"      className="bg-[#0d0f28]">Technical MCQ</option>
+                            <option value="APTITUDE"           className="bg-[#0d0f28]">Aptitude Questions</option>
+                            <option value="CODING"             className="bg-[#0d0f28]">Coding Questions</option>
                           </select>
 
-                          {/* Search in source */}
+                          {/* Search */}
                           {qForm.sourceTable && (
-                            <input
-                              type="text"
-                              placeholder="Search questions..."
-                              value={sourceSearch}
-                              onChange={e => {
-                                setSourceSearch(e.target.value);
-                                searchSource(qForm.sourceTable, e.target.value);
-                              }}
-                              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
-                            />
+                            <div className="relative">
+                              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-600" />
+                              <input type="text" placeholder="Search questions..."
+                                value={sourceSearch}
+                                onChange={e => { setSourceSearch(e.target.value); searchSource(qForm.sourceTable, e.target.value); }}
+                                className={inputCls + " pl-9"} />
+                            </div>
                           )}
 
-                          {/* Source results */}
+                          {/* Results */}
                           {sourceList.length > 0 && (
-                            <div className="max-h-48 overflow-y-auto space-y-1.5 border border-slate-100 rounded-xl p-2">
+                            <div className="max-h-48 overflow-y-auto space-y-1.5 border border-white/[0.05] rounded-xl p-2">
                               {sourceList.slice(0, 10).map(q => (
                                 <div key={q.id}
-                                  className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded-lg hover:bg-indigo-50 transition">
-                                  <div className="flex-1 min-w-0">
-                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded mr-1 ${
-                                      q.type === "MCQ"
-                                        ? "bg-blue-50 text-blue-600"
-                                        : q.type === "CODING"
-                                          ? "bg-emerald-50 text-emerald-600"
-                                          : "bg-violet-50 text-violet-600"
-                                    }`}>
+                                  className="flex items-center justify-between gap-2 p-2 bg-white/[0.02] border border-white/[0.04] rounded-lg hover:bg-white/[0.05] transition">
+                                  <div className="flex-1 min-w-0 flex items-center gap-2">
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border shrink-0 ${qTypeBadge[q.type] || qTypeBadge.THEORY}`}>
                                       {q.type}
                                     </span>
-                                    <span className="text-xs text-slate-700 line-clamp-1">{q.text}</span>
+                                    <span className="text-xs text-slate-400 line-clamp-1">{q.text}</span>
                                   </div>
-                                  <button
-                                    onClick={() => addQuestionToSet(set.id, q.id)}
-                                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 shrink-0 transition px-2 py-1 bg-indigo-50 rounded-lg"
-                                  >
+                                  <button onClick={() => addQuestionToSet(set.id, q.id)}
+                                    className="text-xs font-bold text-indigo-400 hover:text-white shrink-0 transition px-2.5 py-1 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500 rounded-lg">
                                     + Add
                                   </button>
                                 </div>
@@ -459,30 +439,26 @@ function AdminMockSets() {
                             </div>
                           )}
 
-                          <button
-                            onClick={() => { setAddingTo(null); setSourceList([]); setQForm(emptyQForm); }}
-                            className="w-full py-2 text-xs font-semibold text-slate-500 hover:text-slate-700 transition"
-                          >
+                          <button onClick={() => { setAddingTo(null); setSourceList([]); setQForm(emptyQForm); }}
+                            className="w-full py-2 text-xs font-semibold text-slate-600 hover:text-slate-400 transition">
                             Cancel
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => setAddingTo(set.id)}
-                          className="w-full py-2.5 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-xl hover:bg-indigo-100 transition"
-                        >
-                          + Add Question from Question Bank
+                        <button onClick={() => setAddingTo(set.id)}
+                          className="w-full py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/[0.06] border border-indigo-500/20 rounded-xl hover:bg-indigo-500/10 transition">
+                          + Add Question from Bank
                         </button>
                       )}
                     </div>
                   )}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

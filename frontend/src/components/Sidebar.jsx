@@ -19,7 +19,9 @@ const navItems = [
   { icon: <User size={18} />, label: "Profile", path: "/profile" },
 ];
 
-function Sidebar({ isOpen, setIsOpen }) {
+
+
+function Sidebar({ isOpen, setIsOpen, streak }) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -134,24 +136,29 @@ function Sidebar({ isOpen, setIsOpen }) {
       <div className="relative z-10 p-3 border-t border-white/5 space-y-2 bg-[#06091a]">
         
         {/* Daily Progress Module Container */}
-        {isOpen && (
+          {isOpen && (
           <div className="rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-white/[0.04] p-3.5">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <p className="text-[11px] uppercase tracking-widest text-slate-500 font-bold">
-                  Daily Goal
+                  Day Streak
                 </p>
                 <h3 className="text-xs font-bold text-slate-200 mt-0.5">
-                  6 of 10 Cleared
+                  {streak > 0 ? `${streak} day${streak > 1 ? "s" : ""} in a row 🎯` : "Start your streak today!"}
                 </h3>
               </div>
-              <span className="text-lg filter drop-shadow-[0_2px_8px_rgba(249,115,22,0.4)]">🔥</span>
+              <span className="text-lg filter drop-shadow-[0_2px_8px_rgba(249,115,22,0.4)]">
+                🔥
+              </span>
             </div>
-            
-            {/* Cleaner, High-Contrast Sleek Micro Progress Bar Meter */}
+            {/* Progress bar — streak out of 30 days as a goal */}
             <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-              <div className="h-full w-[60%] rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md shadow-indigo-500/50" />
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 shadow-md shadow-indigo-500/50 transition-all duration-500"
+                style={{ width: `${Math.min((streak / 30) * 100, 100)}%` }}
+              />
             </div>
+            <p className="text-[10px] text-slate-600 mt-1.5">{streak}/30 day goal</p>
           </div>
         )}
 

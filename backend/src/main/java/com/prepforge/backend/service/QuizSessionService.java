@@ -14,7 +14,16 @@ public class QuizSessionService {
     private final QuizSessionRepository repository;
 
     public QuizSession save(QuizSession session) {
-        session.setAccuracy((double) session.getScore() / session.getTotal() * 100);
+        // FIX: Ensure attemptedAt is never null before saving
+        if (session.getAttemptedAt() == null) {
+            session.setAttemptedAt(java.time.LocalDateTime.now());
+        }
+
+        session.setAccuracy(
+                session.getTotal() > 0
+                        ? (double) session.getScore() / session.getTotal() * 100
+                        : 0.0
+        );
         return repository.save(session);
     }
 

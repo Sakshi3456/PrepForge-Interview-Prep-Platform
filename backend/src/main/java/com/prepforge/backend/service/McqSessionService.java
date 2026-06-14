@@ -14,7 +14,11 @@ public class McqSessionService {
     private final McqSessionRepository repository;
 
     public McqSession save(McqSession session) {
-        session.setAccuracy((double) session.getScore() / session.getTotal() * 100);
+        session.setAccuracy(
+                session.getTotal() > 0
+                        ? (double) session.getScore() / session.getTotal() * 100
+                        : 0.0
+        );
         return repository.save(session);
     }
 

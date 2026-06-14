@@ -1,48 +1,48 @@
 import { useEffect, useState } from "react";
-import { 
-  MessageSquare, Search, Filter, Shuffle, HelpCircle, 
-  Flame, CheckCircle2, Bookmark, X, ChevronDown, ChevronUp 
+import {
+  MessageSquare, Search, Filter, Shuffle, HelpCircle,
+  Flame, CheckCircle2, Bookmark, X, ChevronDown, ChevronUp
 } from "lucide-react";
 import api from "../services/api";
 
 const categoryIcons = {
-  HR: <HelpCircle size={16} />,
-  Java: <MessageSquare size={16} />,
-  React: <MessageSquare size={16} />,
-  Python: <MessageSquare size={16} />,
-  DSA: <MessageSquare size={16} />,
+  HR:              <HelpCircle size={16} />,
+  Java:            <MessageSquare size={16} />,
+  React:           <MessageSquare size={16} />,
+  Python:          <MessageSquare size={16} />,
+  DSA:             <MessageSquare size={16} />,
   "System Design": <MessageSquare size={16} />,
-  DBMS: <MessageSquare size={16} />,
-  OS: <MessageSquare size={16} />,
-  "Spring Boot": <MessageSquare size={16} />,
+  DBMS:            <MessageSquare size={16} />,
+  OS:              <MessageSquare size={16} />,
+  "Spring Boot":   <MessageSquare size={16} />,
 };
 
 const difficultyConfig = {
-  Easy:   { color: "text-emerald-600 bg-emerald-50 border-emerald-100", dot: "bg-emerald-500" },
-  Medium: { color: "text-amber-600 bg-amber-50 border-amber-100",   dot: "bg-amber-500" },
-  Hard:   { color: "text-rose-600 bg-rose-50 border-rose-100",       dot: "bg-rose-500" },
+  Easy:   { badge: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", dot: "bg-emerald-400" },
+  Medium: { badge: "text-amber-400 bg-amber-500/10 border-amber-500/20",       dot: "bg-amber-400"   },
+  Hard:   { badge: "text-rose-400 bg-rose-500/10 border-rose-500/20",           dot: "bg-rose-400"    },
 };
 
+const Skeleton = ({ className }) => (
+  <div className={`animate-pulse bg-white/[0.06] rounded-xl ${className}`} />
+);
+
 function InterviewQuestions() {
-  const [questions, setQuestions] = useState([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
-  const [difficulty, setDifficulty] = useState("All");
-  const [openId, setOpenId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [questions,      setQuestions]      = useState([]);
+  const [search,         setSearch]         = useState("");
+  const [category,       setCategory]       = useState("All");
+  const [difficulty,     setDifficulty]     = useState("All");
+  const [openId,         setOpenId]         = useState(null);
+  const [loading,        setLoading]        = useState(true);
   const [randomQuestion, setRandomQuestion] = useState(null);
 
-  // Persistent storage pattern for mock progress assessments
   const [assessment, setAssessment] = useState(() => {
     const saved = localStorage.getItem("prepforge_self_assessments");
     return saved ? JSON.parse(saved) : {};
   });
 
-  useEffect(() => {
-    fetchQuestions();
-  }, []);
+  useEffect(() => { fetchQuestions(); }, []);
 
-  // Synchronize state mutations to local persistent storage blocks
   useEffect(() => {
     localStorage.setItem("prepforge_self_assessments", JSON.stringify(assessment));
   }, [assessment]);
@@ -53,7 +53,7 @@ function InterviewQuestions() {
       const res = await api.get("/questions");
       setQuestions(res.data);
     } catch (err) {
-      console.error("Failed to load interview item indexes", err);
+      console.error("Failed to load questions", err);
     } finally {
       setLoading(false);
     }
@@ -61,26 +61,21 @@ function InterviewQuestions() {
 
   const categories = ["All", ...new Set(questions.map((q) => q.category))];
 
-  // Coordinated evaluation array matching all configuration elements
   const filteredQuestions = questions.filter((q) => {
-    const matchSearch = q.question.toLowerCase().includes(search.toLowerCase());
-    const matchCategory = category === "All" || q.category === category;
-    const matchDifficulty = difficulty === "All" || q.difficulty === difficulty;
+    const matchSearch     = q.question.toLowerCase().includes(search.toLowerCase());
+    const matchCategory   = category   === "All" || q.category   === category;
+    const matchDifficulty = difficulty === "All" || q.difficulty  === difficulty;
     return matchSearch && matchCategory && matchDifficulty;
   });
 
-  // Hardened randomized selector matching precise active filters
-  const pickRandomIntegratedQuestion = () => {
+  const pickRandom = () => {
     if (filteredQuestions.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
-    setRandomQuestion(filteredQuestions[randomIndex]);
+    const idx = Math.floor(Math.random() * filteredQuestions.length);
+    setRandomQuestion(filteredQuestions[idx]);
   };
 
-  const commitSelfAssessmentState = (questionId, stateValue) => {
-    setAssessment(prev => ({
-      ...prev,
-      [questionId]: stateValue
-    }));
+  const markAssessment = (questionId, value) => {
+    setAssessment(prev => ({ ...prev, [questionId]: value }));
   };
 
   const stats = {
@@ -91,96 +86,94 @@ function InterviewQuestions() {
   };
 
   return (
-    <div className="space-y-8 pb-16 relative min-w-0 overflow-x-hidden w-full">
-      
-      {/* ── TOP SECTION: BRANDED CORE OVERLAY HERO ── */}
-      <div className="relative min-w-0 overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0c0f2b] via-[#161a46] to-[#261b55] p-8 shadow-md">
+    <div className="space-y-6 pb-16 relative min-w-0 overflow-x-hidden w-full">
+
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#0c0f2b] via-[#161a46] to-[#261b55] p-8 shadow-md">
         <div className="absolute -top-12 -right-12 w-64 h-64 bg-indigo-500/10 blur-[80px] pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-64 h-64 bg-purple-500/10 blur-[80px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div>
-            <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase">
-              PrepForge Verification Matrix
-            </span>
+            <span className="text-[10px] font-black tracking-widest text-indigo-400 uppercase">Interview Prep</span>
             <h1 className="text-3xl font-black text-white tracking-tight mt-1">Interview Questions</h1>
-            <p className="text-slate-300 text-sm mt-2 max-w-md font-medium leading-relaxed">
-              Master HR vetting workflows, runtime algorithmic complexities, and system design patterns curated by engineering leads.
+            <p className="text-slate-400 text-sm mt-2 max-w-md font-medium leading-relaxed">
+              HR, technical, DSA and system design questions — with answers and self-assessment.
             </p>
           </div>
 
           <div className="flex gap-3 flex-wrap shrink-0">
             {[
-              { label: "Total Pool",  value: stats.total,  border: "border-white/10 text-white bg-white/[0.04]" },
-              { label: "Easy Track",  value: stats.easy,  border: "border-emerald-500/20 text-emerald-400 bg-emerald-500/5" },
-              { label: "Medium Core", value: stats.medium, border: "border-amber-500/20 text-amber-400 bg-amber-500/5" },
-              { label: "Hard Domain", value: stats.hard,   border: "border-rose-500/20 text-rose-400 bg-rose-500/5" },
+              { label: "Total",  value: stats.total,  cls: "border-white/10 text-white bg-white/[0.04]"                    },
+              { label: "Easy",   value: stats.easy,   cls: "border-emerald-500/20 text-emerald-400 bg-emerald-500/[0.06]"  },
+              { label: "Medium", value: stats.medium, cls: "border-amber-500/20 text-amber-400 bg-amber-500/[0.06]"        },
+              { label: "Hard",   value: stats.hard,   cls: "border-rose-500/20 text-rose-400 bg-rose-500/[0.06]"           },
             ].map((s, i) => (
-              <div key={i} className={`border rounded-xl px-4 py-2.5 text-center min-w-[90px] shadow-sm backdrop-blur-sm ${s.border}`}>
+              <div key={i} className={`border rounded-xl px-4 py-2.5 text-center min-w-[80px] ${s.cls}`}>
                 <p className="text-lg font-black tracking-tight leading-none">{loading ? "—" : s.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mt-1.5">{s.label}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mt-1">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── CENTRAL CONTROL DASHBOARD MANAGEMENT PANEL ── */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-4 flex flex-col lg:flex-row gap-3 items-center min-w-0 overflow-hidden">
+      {/* ── Filters ───────────────────────────────────────────────────────── */}
+      <div className="bg-[#0d0f28] border border-white/[0.06] rounded-2xl p-4 flex flex-col lg:flex-row gap-3 items-center">
         <div className="relative flex-1 min-w-0 w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input 
-            type="text" 
-            placeholder="Search questions by key concepts..."
-            className="w-full pl-10 pr-4 py-2.5 text-xs font-medium bg-slate-50 hover:bg-slate-100/50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
-            value={search} 
-            onChange={e => setSearch(e.target.value)} 
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+          <input
+            type="text"
+            placeholder="Search questions..."
+            className="w-full pl-10 pr-4 py-2.5 text-xs font-medium bg-white/[0.03] border border-white/[0.07] text-slate-200 placeholder-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500/40 transition-all"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
           />
         </div>
-        
-        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0 min-w-0">
+
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto shrink-0">
           <div className="relative flex-1">
-            <select 
-              className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none pr-8 min-w-[140px]"
-              value={category} 
+            <select
+              className="w-full px-4 py-2.5 text-xs font-bold text-slate-400 bg-white/[0.03] border border-white/[0.07] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all appearance-none pr-8 min-w-[140px]"
+              value={category}
               onChange={e => setCategory(e.target.value)}
             >
               {categories.map((cat, i) => <option key={i} value={cat}>Category: {cat}</option>)}
             </select>
-            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
           </div>
 
           <div className="relative flex-1">
-            <select 
-              className="w-full px-4 py-2.5 text-xs font-bold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all appearance-none pr-8 min-w-[130px]"
-              value={difficulty} 
+            <select
+              className="w-full px-4 py-2.5 text-xs font-bold text-slate-400 bg-white/[0.03] border border-white/[0.07] rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all appearance-none pr-8 min-w-[130px]"
+              value={difficulty}
               onChange={e => setDifficulty(e.target.value)}
             >
-              {["All","Easy","Medium","Hard"].map(d => <option key={d} value={d}>Complexity: {d}</option>)}
+              {["All","Easy","Medium","Hard"].map(d => <option key={d} value={d}>Difficulty: {d}</option>)}
             </select>
-            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <Filter size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" />
           </div>
 
-          <button 
-            onClick={pickRandomIntegratedQuestion}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all shadow-sm shadow-indigo-100"
+          <button
+            onClick={pickRandom}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl hover:from-indigo-400 hover:to-purple-500 transition-all shadow-lg shadow-indigo-500/20"
           >
             <Shuffle size={14} />
-            <span>Random Selector</span>
+            <span>Random Question</span>
           </button>
         </div>
       </div>
 
-      {/* HORIZONTAL INTERACTIVE CATEGORY PILLS BAR */}
+      {/* ── Category pills ────────────────────────────────────────────────── */}
       <div className="flex gap-1.5 flex-wrap items-center">
         {categories.map(cat => (
-          <button 
-            key={cat} 
+          <button
+            key={cat}
             onClick={() => setCategory(cat)}
             className={`px-4 py-2 rounded-lg text-xs font-bold border transition-all duration-150 ${
               category === cat
-                ? "bg-indigo-600 border-indigo-600 text-white shadow-sm"
-                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:text-slate-700"
+                ? "bg-indigo-600 border-indigo-600 text-white shadow-sm shadow-indigo-500/20"
+                : "bg-white/[0.03] text-slate-500 border-white/[0.07] hover:bg-white/[0.07] hover:text-slate-300"
             }`}
           >
             {cat}
@@ -188,197 +181,199 @@ function InterviewQuestions() {
         ))}
       </div>
 
-      {/* CONTEXT RUNTIME COUNT LOGS CARD */}
+      {/* Result count */}
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs font-medium text-slate-400">
-          Showing <span className="font-bold text-slate-700">{filteredQuestions.length}</span> of {questions.length} questions
+        <p className="text-xs font-medium text-slate-600">
+          Showing <span className="font-bold text-slate-400">{filteredQuestions.length}</span> of {questions.length} questions
         </p>
         {(search || category !== "All" || difficulty !== "All") && (
-          <button 
+          <button
             onClick={() => { setSearch(""); setCategory("All"); setDifficulty("All"); }}
-            className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors focus:outline-none"
+            className="text-xs font-bold text-slate-600 hover:text-rose-400 transition-colors"
           >
-            ✕ Clear Global Filters
+            ✕ Clear filters
           </button>
         )}
       </div>
 
-      {/* ── OVERLAY DIALOG SYSTEM: RANDOM INTERACTIVE MODAL ── */}
+      {/* ── Random Question Modal ─────────────────────────────────────────── */}
       {randomQuestion && (
-        <div className="fixed inset-0 bg-[#020617]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-xl w-full shadow-2xl border border-slate-100 animate-in scale-in duration-200 flex flex-col space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <span className="text-xs font-black uppercase tracking-widest text-indigo-600 inline-flex items-center gap-1.5">
-                <Shuffle size={14} /> Random Selection Evaluation
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-xl w-full shadow-2xl flex flex-col space-y-4">
+            <div className="flex items-center justify-between border-b border-white/[0.06] pb-3">
+              <span className="text-xs font-black uppercase tracking-widest text-indigo-400 inline-flex items-center gap-1.5">
+                <Shuffle size={14} /> Random Question
               </span>
-              <button onClick={() => setRandomQuestion(null)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
+              <button
+                onClick={() => setRandomQuestion(null)}
+                className="p-1 text-slate-600 hover:text-slate-300 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
-            
+
             <div>
-              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.07]">
                 {randomQuestion.category}
               </span>
-              <h3 className="text-base font-bold text-slate-800 mt-2 tracking-tight leading-snug">
+              <h3 className="text-base font-bold text-slate-200 mt-2 tracking-tight leading-snug">
                 {randomQuestion.question}
               </h3>
             </div>
 
-            <div className="bg-slate-50/80 border border-slate-200/50 rounded-xl p-4 max-h-[240px] overflow-y-auto">
-              <p className="text-xs font-medium text-slate-600 leading-relaxed">{randomQuestion.answer}</p>
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-4 max-h-[240px] overflow-y-auto">
+              <p className="text-xs font-medium text-slate-400 leading-relaxed">{randomQuestion.answer}</p>
             </div>
 
             <div className="flex gap-2.5 pt-2">
-              <button 
-                onClick={pickRandomIntegratedQuestion}
-                className="flex-1 py-2.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl transition-colors"
+              <button
+                onClick={pickRandom}
+                className="flex-1 py-2.5 text-xs font-bold bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-400 rounded-xl transition-colors"
               >
-                Draw Alternating Node
+                Next Random
               </button>
-              <button 
+              <button
                 onClick={() => setRandomQuestion(null)}
-                className="flex-1 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition-colors"
+                className="flex-1 py-2.5 text-xs font-bold bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.07] text-slate-400 rounded-xl transition-colors"
               >
-                Dismiss Canvas
+                Close
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── CORE RUNTIME ARCHITECTURE QUESTION SET LIST ── */}
-      <section className="space-y-4">
+      {/* ── Question list ─────────────────────────────────────────────────── */}
+      <section className="space-y-3">
         {loading ? (
           [...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-3 animate-pulse">
-              <div className="h-3 bg-slate-100 rounded w-1/5" />
-              <div className="h-5 bg-slate-100 rounded w-4/5" />
+            <div key={i} className="bg-[#0d0f28] rounded-2xl border border-white/[0.06] p-6 space-y-3">
+              <Skeleton className="h-3 w-1/5" />
+              <Skeleton className="h-5 w-4/5" />
             </div>
           ))
         ) : filteredQuestions.length === 0 ? (
-          <div className="text-center py-20 border-2 border-dashed border-slate-200/60 rounded-2xl bg-white p-8">
-            <Search size={32} className="mx-auto text-slate-300 mb-3" />
-            <h3 className="text-sm font-bold text-slate-700">No matching questions encountered</h3>
-            <p className="text-xs text-slate-400 mt-1 font-medium">Readjust global dropdown configuration layers or clear character arrays.</p>
+          <div className="text-center py-20 border border-dashed border-white/[0.06] rounded-2xl bg-[#0d0f28]">
+            <Search size={32} className="mx-auto text-slate-700 mb-3" />
+            <h3 className="text-sm font-bold text-slate-400">No questions found</h3>
+            <p className="text-xs text-slate-600 mt-1 font-medium">Try adjusting your search or filters.</p>
           </div>
         ) : (
           filteredQuestions.map((q) => {
-            const diff = difficultyConfig[q.difficulty] || difficultyConfig.Easy;
-            const isOpen = openId === q.id;
-            const userAssessment = assessment[q.id];
+            const diff         = difficultyConfig[q.difficulty] || difficultyConfig.Easy;
+            const isOpen       = openId === q.id;
+            const userMark     = assessment[q.id];
 
             return (
-              <div 
+              <div
                 key={q.id}
-                className={`bg-white rounded-2xl border transition-colors duration-200 overflow-hidden min-w-0 ${
-                  isOpen ? "border-indigo-200 shadow-md shadow-slate-100" : "border-slate-200/60 hover:border-slate-300 hover:shadow-sm"
+                className={`bg-[#0d0f28] rounded-2xl border transition-all duration-200 overflow-hidden min-w-0 ${
+                  isOpen
+                    ? "border-indigo-500/30 bg-[#111438]"
+                    : "border-white/[0.06] hover:border-indigo-500/20 hover:bg-[#0f1130]"
                 }`}
               >
                 <div className="p-5 space-y-3">
-                  
-                  {/* COMPONENT LAYOUT META WRAPPER HEADER */}
+
+                  {/* Header */}
                   <div className="flex items-start gap-4">
-                    <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shrink-0 mt-0.5">
+                    <div className="w-9 h-9 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center text-indigo-400 shrink-0 mt-0.5">
                       {categoryIcons[q.category] || <HelpCircle size={16} />}
                     </div>
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] font-extrabold tracking-wider text-slate-400 uppercase">
+                        <span className="text-[10px] font-extrabold tracking-wider text-slate-500 uppercase">
                           {q.category}
                         </span>
                         {q.frequentlyAsked && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-50 border border-rose-100 text-rose-500 px-2 py-0.5 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full">
                             <Flame size={10} />
-                            <span>High Frequency</span>
+                            <span>Frequently Asked</span>
                           </span>
                         )}
                       </div>
-                      <h2 className="text-[15px] font-bold text-slate-800 tracking-tight leading-snug break-words">
+                      <h2 className="text-[15px] font-bold text-slate-200 tracking-tight leading-snug break-words">
                         {q.question}
                       </h2>
                     </div>
                   </div>
 
-                  {/* SUBMETRICS BADGE ALLOCATION STRIP */}
+                  {/* Badges */}
                   <div className="flex items-center gap-2 flex-wrap pl-13">
                     {q.difficulty && (
-                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 border rounded-md ${diff.color}`}>
+                      <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 border rounded-md ${diff.badge}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />
                         {q.difficulty}
                       </span>
                     )}
                     {q.companyTag && q.companyTag.split(",").map(tag => (
-                      <span key={tag} className="text-[11px] font-medium bg-slate-50 text-slate-400 border border-slate-200/40 px-2.5 py-1 rounded-md">
+                      <span key={tag} className="text-[11px] font-medium bg-white/[0.04] text-slate-500 border border-white/[0.07] px-2.5 py-1 rounded-md">
                         {tag.trim()}
                       </span>
                     ))}
                   </div>
 
-                  {/* SEPARATOR BUTTON TRIGGER TOGGLE ACTION */}
-                  <div className="pl-13 pt-0">
-                    <button 
+                  {/* Toggle */}
+                  <div className="pl-13">
+                    <button
                       onClick={() => setOpenId(isOpen ? null : q.id)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors focus:outline-none"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
                     >
-                      <span>{isOpen ? "Conceal Verification Solution" : "Expose Verification Solution"}</span>
+                      <span>{isOpen ? "Hide Answer" : "Show Answer"}</span>
                       {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
                   </div>
 
-                  {/* COLLAPSIBLE DATA DRAWER VIEWPORT REGION */}
+                  {/* Answer + Self Assessment */}
                   {isOpen && (
-                    <div className="pl-13 pt-2 space-y-4 animate-in fade-in duration-200">
-                      <div className="bg-slate-50/80 border border-slate-200/50 rounded-xl p-4.5">
-                        <p className="text-xs font-medium text-slate-600 leading-relaxed whitespace-pre-line">
+                    <div className="pl-13 pt-2 space-y-4">
+                      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl p-4">
+                        <p className="text-xs font-medium text-slate-400 leading-relaxed whitespace-pre-line">
                           {q.answer}
                         </p>
                       </div>
 
-                      {/* MEMORY SELF ASSESSMENT LOGIC CONTROLLER WINDOW */}
-                      <div className="pt-2 border-t border-slate-100">
-                        {!userAssessment ? (
+                      <div className="pt-2 border-t border-white/[0.05]">
+                        {!userMark ? (
                           <div className="space-y-2">
-                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Candidate Self Assessment Verification</p>
+                            <p className="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Did you know this?</p>
                             <div className="flex gap-2">
-                              <button 
-                                onClick={() => commitSelfAssessmentState(q.id, "knew")}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 text-emerald-700 rounded-xl transition-all"
+                              <button
+                                onClick={() => markAssessment(q.id, "knew")}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl transition-all"
                               >
                                 <CheckCircle2 size={13} />
-                                <span>Retained Successfully</span>
+                                <span>Yes, I knew it</span>
                               </button>
-                              <button 
-                                onClick={() => commitSelfAssessmentState(q.id, "didnt")}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-rose-50 hover:bg-rose-100 border border-rose-200/60 text-rose-700 rounded-xl transition-all"
+                              <button
+                                onClick={() => markAssessment(q.id, "didnt")}
+                                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-xl transition-all"
                               >
                                 <Bookmark size={13} />
-                                <span>Flag for Core Revision</span>
+                                <span>Need to revise</span>
                               </button>
                             </div>
                           </div>
                         ) : (
-                          <div className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 border rounded-xl shadow-inner ${
-                            userAssessment === "knew"
-                              ? "bg-emerald-50/60 border-emerald-200/60 text-emerald-700"
-                              : "bg-rose-50/60 border-rose-200/60 text-rose-700"
+                          <div className={`inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 border rounded-xl ${
+                            userMark === "knew"
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                              : "bg-rose-500/10 border-rose-500/20 text-rose-400"
                           }`}>
-                            <div className={`w-1.5 h-1.5 rounded-full ${userAssessment === "knew" ? "bg-emerald-500" : "bg-rose-500"}`} />
-                            <span>{userAssessment === "knew" ? "Candidate retained this structural layout successfully" : "Pinned inside localized compilation revision logs"}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${userMark === "knew" ? "bg-emerald-400" : "bg-rose-400"}`} />
+                            <span>{userMark === "knew" ? "Marked as known ✓" : "Added to revision list"}</span>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
-
                 </div>
               </div>
             );
           })
         )}
       </section>
-
     </div>
   );
 }

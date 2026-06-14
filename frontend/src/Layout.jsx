@@ -6,13 +6,10 @@ export default function Layout() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div
-      className={`grid min-h-screen overflow-hidden bg-[#030712] antialiased text-slate-100 ${
-        isOpen
-          ? "grid-cols-[260px_1fr]"
-          : "grid-cols-[88px_1fr]"
-      }`}
-    >
+          <div className={`grid h-screen overflow-hidden bg-[#030712] antialiased text-slate-100 ${
+          isOpen ? "grid-cols-[260px_1fr]" : "grid-cols-[88px_1fr]"
+        }`}>
+    
       <Sidebar
         isOpen={isOpen}
         setIsOpen={setIsOpen}

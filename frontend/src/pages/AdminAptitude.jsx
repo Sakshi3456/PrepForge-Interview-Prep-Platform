@@ -1,15 +1,7 @@
 import { useEffect, useState } from "react";
+import { Search, X, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import api from "../services/api";
-import { Link } from "react-router-dom";
-
-const navItems = [
-  { icon: "📊", label: "Dashboard",          path: "/admin"           },
-  { icon: "📚", label: "Manage Notes",        path: "/admin/notes"     },
-  { icon: "🎤", label: "Interview Questions", path: "/admin/questions" },
-  { icon: "💻", label: "Coding Questions",    path: "/admin/coding"    },
-  { icon: "👥", label: "Manage Users",        path: "/admin/users"     },
-  { icon: "🧮", label: "Aptitude Quiz",       path: "/admin/aptitude"  },
-];
+import AdminLayout from "../AdminLayout";
 
 const emptyForm = {
   category: "", difficulty: "", question: "",
@@ -17,20 +9,29 @@ const emptyForm = {
   correctAnswer: "", explanation: "",
 };
 
-const diffColor = {
-  Easy:   "text-emerald-600 bg-emerald-50",
-  Medium: "text-amber-600 bg-amber-50",
-  Hard:   "text-rose-600 bg-rose-50",
+const diffBadge = {
+  Easy:   "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  Medium: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  Hard:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
 };
 
+const CATEGORIES  = ["All", "Quantitative", "Logical", "Verbal", "Puzzles"];
+const DIFFICULTIES = ["All", "Easy", "Medium", "Hard"];
+
+const inputCls = "w-full px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40 transition";
+const labelCls = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
+
 function AdminAptitude() {
-  const [questions, setQuestions]         = useState([]);
-  const [form, setForm]                   = useState(emptyForm);
-  const [editId, setEditId]               = useState(null);
-  const [toast, setToast]                 = useState(null);
+  const [questions,     setQuestions]     = useState([]);
+  const [form,          setForm]          = useState(emptyForm);
+  const [editId,        setEditId]        = useState(null);
+  const [toast,         setToast]         = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [searchAdmin, setSearchAdmin]     = useState("");
-  const [expandedId, setExpandedId]       = useState(null);
+  const [search,        setSearch]        = useState("");
+  const [expandedId,    setExpandedId]    = useState(null);
+  const [filterCat,     setFilterCat]     = useState("All");
+  const [filterDiff,    setFilterDiff]    = useState("All");
+  const [formOpen,      setFormOpen]      = useState(true);
 
   useEffect(() => { fetchQuestions(); }, []);
 
@@ -50,9 +51,8 @@ function AdminAptitude() {
 
   const saveQuestion = async (e) => {
     e.preventDefault();
-    if (!form.category || !form.question || !form.correctAnswer) {
+    if (!form.category || !form.question || !form.correctAnswer)
       return showToast("Category, question and correct answer are required", "error");
-    }
     try {
       if (editId) {
         await api.put(`/aptitude/${editId}`, form);
@@ -61,12 +61,8 @@ function AdminAptitude() {
         await api.post("/aptitude", form);
         showToast("Question added!");
       }
-      setForm(emptyForm);
-      setEditId(null);
-      fetchQuestions();
-    } catch {
-      showToast("Something went wrong", "error");
-    }
+      setForm(emptyForm); setEditId(null); fetchQuestions();
+    } catch { showToast("Something went wrong", "error"); }
   };
 
   const deleteQuestion = async (id) => {
@@ -78,58 +74,58 @@ function AdminAptitude() {
 
   const startEdit = (q) => {
     setForm({
-      category:      q.category      || "",
-      difficulty:    q.difficulty    || "",
-      question:      q.question      || "",
-      optionA:       q.optionA       || "",
-      optionB:       q.optionB       || "",
-      optionC:       q.optionC       || "",
-      optionD:       q.optionD       || "",
-      correctAnswer: q.correctAnswer || "",
-      explanation:   q.explanation   || "",
+      category: q.category || "", difficulty: q.difficulty || "",
+      question: q.question || "", optionA: q.optionA || "",
+      optionB: q.optionB || "", optionC: q.optionC || "",
+      optionD: q.optionD || "", correctAnswer: q.correctAnswer || "",
+      explanation: q.explanation || "",
     });
     setEditId(q.id);
+    setFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const cancelEdit = () => {
-    setEditId(null);
-    setForm(emptyForm);
-  };
+  const cancelEdit = () => { setEditId(null); setForm(emptyForm); };
 
-  const filtered = questions.filter(q =>
-    q.question.toLowerCase().includes(searchAdmin.toLowerCase()) ||
-    q.category.toLowerCase().includes(searchAdmin.toLowerCase())
-  );
+  const filtered = questions.filter(q => {
+    const matchSearch = q.question.toLowerCase().includes(search.toLowerCase()) ||
+                        q.category.toLowerCase().includes(search.toLowerCase());
+    const matchCat    = filterCat  === "All" || q.category  === filterCat;
+    const matchDiff   = filterDiff === "All" || q.difficulty === filterDiff;
+    return matchSearch && matchCat && matchDiff;
+  });
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <AdminLayout>
 
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium ${
-          toast.type === "error" ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-bold border ${
+          toast.type === "error"
+            ? "bg-[#0d0f28] border-rose-500/30 text-rose-300"
+            : "bg-[#0d0f28] border-emerald-500/30 text-emerald-300"
         }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span> {toast.msg}
+          {toast.type === "error" ? <X size={14}/> : <CheckCircle2 size={14}/>}
+          {toast.msg}
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* Delete modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-xl">🗑️</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X size={20} className="text-rose-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 text-center">Delete Question?</h3>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-5">This cannot be undone.</p>
+            <h3 className="text-base font-bold text-white text-center">Delete Question?</h3>
+            <p className="text-xs text-slate-500 text-center mt-1 mb-5">This cannot be undone.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-white/[0.04] border border-white/[0.08] text-slate-400 rounded-xl hover:bg-white/[0.08] transition">
                 Cancel
               </button>
               <button onClick={() => deleteQuestion(deleteConfirm)}
-                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-400 transition">
                 Delete
               </button>
             </div>
@@ -137,208 +133,264 @@ function AdminAptitude() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col shrink-0 h-screen sticky top-0">
-        <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">⚒️</span>
-            <span className="text-xl font-black">PrepForge</span>
-          </div>
-          <span className="text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase">
-            Admin Panel
-          </span>
+      <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+
+        {/* Page header */}
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight">Aptitude Quiz</h2>
+          <p className="text-xs text-slate-500 mt-1">{questions.length} questions in the bank</p>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1">
-          {navItems.map(item => (
-            <Link key={item.label} to={item.path}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
-              <span>{item.icon}</span> {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="px-4 py-5 border-t border-white/10">
-          <button onClick={() => { localStorage.clear(); window.location.href = "/"; }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition">
-            <span>🚪</span> Logout
+
+        {/* ── FORM — full width collapsible ── */}
+        <div className="bg-[#0d0f28] border border-white/[0.06] rounded-2xl overflow-hidden">
+
+          {/* Form header */}
+          <button
+            onClick={() => setFormOpen(!formOpen)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${editId ? "bg-amber-400" : "bg-indigo-400"}`} />
+              <span className="text-sm font-bold text-slate-200">
+                {editId ? `Editing Question #${editId}` : "Add New Question"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {editId && (
+                <span onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 transition">
+                  Cancel Edit ✕
+                </span>
+              )}
+              {formOpen ? <ChevronUp size={16} className="text-slate-500"/> : <ChevronDown size={16} className="text-slate-500"/>}
+            </div>
           </button>
-        </div>
-      </div>
 
-      {/* Main */}
-      <div className="flex-1 overflow-auto">
-        <div className="bg-white border-b border-slate-100 px-8 py-4 shadow-sm">
-          <h2 className="text-xl font-black text-slate-800">Manage Aptitude Quiz 🧮</h2>
-          <p className="text-slate-500 text-xs mt-0.5">{questions.length} questions in database</p>
-        </div>
+          {/* Form body */}
+          {formOpen && (
+            <form onSubmit={saveQuestion} className="px-6 pb-6 space-y-5 border-t border-white/[0.05]">
+              <div className="pt-5 grid grid-cols-2 md:grid-cols-3 gap-4">
 
-        <div className="p-8 grid grid-cols-1 xl:grid-cols-5 gap-8">
-
-          {/* Form */}
-          <div className="xl:col-span-2 space-y-4">
-            {editId && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <span className="text-sm font-medium text-amber-700">✏️ Editing question #{editId}</span>
-                <button onClick={cancelEdit} className="text-xs text-amber-400 hover:text-amber-700">Cancel ✕</button>
-              </div>
-            )}
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4">
-                {editId ? "✏️ Update Question" : "+ Add New Question"}
-              </h3>
-              <form onSubmit={saveQuestion} className="space-y-4">
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Category *</label>
-                    <select name="category" value={form.category} onChange={handleChange}
-                      className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition">
-                      <option value="">Select</option>
-                      {["Quantitative","Logical","Verbal","Puzzles"].map(c =>
-                        <option key={c}>{c}</option>
-                      )}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Difficulty</label>
-                    <select name="difficulty" value={form.difficulty} onChange={handleChange}
-                      className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition">
-                      <option value="">Select</option>
-                      <option>Easy</option>
-                      <option>Medium</option>
-                      <option>Hard</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Question *</label>
-                  <textarea name="question" value={form.question} onChange={handleChange}
-                    placeholder="Write the question here..." rows={3}
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition resize-none" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {["A","B","C","D"].map(letter => (
-                    <div key={letter} className="flex flex-col gap-1">
-                      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Option {letter}</label>
-                      <input name={`option${letter}`} value={form[`option${letter}`]} onChange={handleChange}
-                        placeholder={`Option ${letter}`}
-                        className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition" />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Correct Answer *</label>
-                  <select name="correctAnswer" value={form.correctAnswer} onChange={handleChange}
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition">
-                    <option value="">Select correct option</option>
-                    <option value="optionA">A — {form.optionA || "Option A"}</option>
-                    <option value="optionB">B — {form.optionB || "Option B"}</option>
-                    <option value="optionC">C — {form.optionC || "Option C"}</option>
-                    <option value="optionD">D — {form.optionD || "Option D"}</option>
+                {/* Category */}
+                <div>
+                  <label className={labelCls}>Category *</label>
+                  <select name="category" value={form.category} onChange={handleChange}
+                    className={inputCls + " appearance-none"}>
+                    <option value="" className="bg-[#0d0f28]">Select category</option>
+                    {["Quantitative","Logical","Verbal","Puzzles"].map(c =>
+                      <option key={c} className="bg-[#0d0f28]">{c}</option>
+                    )}
                   </select>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Explanation</label>
-                  <textarea name="explanation" value={form.explanation} onChange={handleChange}
-                    placeholder="Why is this the correct answer..." rows={3}
-                    className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition resize-none" />
+                {/* Difficulty */}
+                <div>
+                  <label className={labelCls}>Difficulty</label>
+                  <select name="difficulty" value={form.difficulty} onChange={handleChange}
+                    className={inputCls + " appearance-none"}>
+                    <option value="" className="bg-[#0d0f28]">Select difficulty</option>
+                    {["Easy","Medium","Hard"].map(d =>
+                      <option key={d} className="bg-[#0d0f28]">{d}</option>
+                    )}
+                  </select>
                 </div>
 
-                <button type="submit"
-                  className={`w-full py-3 rounded-xl text-sm font-bold text-white transition ${
-                    editId
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                      : "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600"
-                  }`}>
-                  {editId ? "✓ Update Question" : "+ Add Question"}
-                </button>
-              </form>
+                {/* Correct answer */}
+                <div>
+                  <label className={labelCls}>Correct Answer *</label>
+                  <select name="correctAnswer" value={form.correctAnswer} onChange={handleChange}
+                    className={inputCls + " appearance-none"}>
+                    <option value="" className="bg-[#0d0f28]">Select correct option</option>
+                    {["A","B","C","D"].map(l =>
+                      <option key={l} value={`option${l}`} className="bg-[#0d0f28]">
+                        {l} — {form[`option${l}`] || `Option ${l}`}
+                      </option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Question */}
+              <div>
+                <label className={labelCls}>Question *</label>
+                <input name="question" value={form.question} onChange={handleChange}
+                  placeholder="Write the question here..."
+                  className={inputCls} />
+              </div>
+
+              {/* Options 2x2 grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {["A","B","C","D"].map(letter => (
+                  <div key={letter}>
+                    <label className={labelCls}>Option {letter}</label>
+                    <input name={`option${letter}`} value={form[`option${letter}`]} onChange={handleChange}
+                      placeholder={`Option ${letter}`}
+                      className={`${inputCls} ${
+                        form.correctAnswer === `option${letter}`
+                          ? "border-emerald-500/40 ring-1 ring-emerald-500/20"
+                          : ""
+                      }`} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Explanation */}
+              <div>
+                <label className={labelCls}>Explanation <span className="text-slate-600 normal-case font-normal">(optional)</span></label>
+                <textarea name="explanation" value={form.explanation} onChange={handleChange}
+                  placeholder="Why is this the correct answer..." rows={2}
+                  className={inputCls + " resize-none"} />
+              </div>
+
+              {/* Submit */}
+              <button type="submit"
+                className={`px-8 py-3 rounded-xl text-sm font-bold text-white transition shadow-lg ${
+                  editId
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20"
+                    : "bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 shadow-indigo-500/20"
+                }`}>
+                {editId ? "✓ Update Question" : "+ Add Question"}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* ── QUESTION BANK — full width ── */}
+        <div className="space-y-4">
+
+          {/* Bank header + search */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-base font-bold text-white">Question Bank</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{filtered.length} of {questions.length} questions</p>
+            </div>
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+              <input type="text" placeholder="Search questions..."
+                value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#0d0f28] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40 transition" />
             </div>
           </div>
 
-          {/* Questions List */}
-          <div className="xl:col-span-3 space-y-4">
-            <div className="relative">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" placeholder="Search questions..."
-                value={searchAdmin} onChange={e => setSearchAdmin(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-400 transition shadow-sm" />
+          {/* Category pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            {CATEGORIES.map(cat => (
+              <button key={cat} onClick={() => setFilterCat(cat)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  filterCat === cat
+                    ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                    : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:bg-white/[0.07] hover:text-slate-300"
+                }`}>
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Difficulty pills */}
+          <div className="flex gap-1.5">
+            {DIFFICULTIES.map(diff => (
+              <button key={diff} onClick={() => setFilterDiff(diff)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  filterDiff === diff
+                    ? diff === "All"    ? "bg-slate-500/20 border-slate-500/40 text-slate-300"
+                      : diff === "Easy"   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                      : diff === "Medium" ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                      :                    "bg-rose-500/20 border-rose-500/40 text-rose-300"
+                    : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:bg-white/[0.07] hover:text-slate-300"
+                }`}>
+                {diff}
+              </button>
+            ))}
+            {(filterCat !== "All" || filterDiff !== "All" || search) && (
+              <button onClick={() => { setFilterCat("All"); setFilterDiff("All"); setSearch(""); }}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-white/[0.07] text-slate-600 hover:text-rose-400 transition ml-2">
+                ✕ Clear
+              </button>
+            )}
+          </div>
+
+          {/* 2-per-row question grid */}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-[#0d0f28] border border-dashed border-white/[0.06] rounded-2xl">
+              <p className="text-3xl mb-3">📭</p>
+              <p className="text-slate-400 font-medium text-sm">No questions found</p>
+              <p className="text-slate-600 text-xs mt-1">Try adjusting your filters or add a new question above</p>
             </div>
-
-            <p className="text-xs text-slate-400">{filtered.length} questions</p>
-
-            <div className="space-y-3">
-              {filtered.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                  <p className="text-4xl mb-3">📭</p>
-                  <p className="text-slate-500 font-medium">No questions yet</p>
-                  <p className="text-slate-400 text-sm mt-1">Add your first question using the form</p>
-                </div>
-              ) : filtered.map(q => (
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {filtered.map(q => (
                 <div key={q.id}
-                  className={`bg-white rounded-2xl border transition-all ${
-                    editId === q.id ? "border-amber-400 shadow-lg" : "border-slate-100 hover:shadow-md"
+                  className={`bg-[#0d0f28] rounded-2xl border transition-all duration-200 ${
+                    editId === q.id
+                      ? "border-amber-500/40 shadow-lg shadow-amber-500/5"
+                      : "border-white/[0.06] hover:border-white/[0.10]"
                   }`}>
-                  <div className="p-4">
+                  <div className="p-4 space-y-2.5">
+
+                    {/* Header */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{q.category}</span>
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{q.category}</span>
                           {q.difficulty && (
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${diffColor[q.difficulty]}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${diffBadge[q.difficulty]}`}>
                               {q.difficulty}
                             </span>
                           )}
                           {editId === q.id && (
-                            <span className="text-[10px] bg-amber-100 text-amber-600 font-semibold px-2 py-0.5 rounded-full">Editing</span>
+                            <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold px-2 py-0.5 rounded-full">
+                              Editing
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm font-bold text-slate-800 line-clamp-2">{q.question}</p>
+                        <p className="text-sm font-bold text-slate-200 leading-snug line-clamp-2">{q.question}</p>
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <button onClick={() => startEdit(q)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/[0.04] border border-white/[0.07] text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/20 transition">
                           Edit
                         </button>
                         <button onClick={() => setDeleteConfirm(q.id)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition border border-rose-100">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition">
                           Delete
                         </button>
                       </div>
                     </div>
 
-                    <button onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
-                      className="text-xs text-violet-400 hover:text-violet-600 font-medium mt-2 transition">
-                      {expandedId === q.id ? "Hide options ↑" : "Preview options ↓"}
+                    {/* Preview toggle */}
+                    <button
+                      onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition flex items-center gap-1">
+                      {expandedId === q.id
+                        ? <><ChevronUp size={12}/>Hide options</>
+                        : <><ChevronDown size={12}/>Preview options</>}
                     </button>
 
+                    {/* Options preview */}
                     {expandedId === q.id && (
-                      <div className="mt-3 space-y-1.5">
-                        {["A","B","C","D"].map(letter => (
-                          <div key={letter}
-                            className={`flex items-center gap-2 p-2.5 rounded-xl text-xs ${
-                              q.correctAnswer === `option${letter}`
-                                ? "bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold"
-                                : "bg-slate-50 text-slate-600"
-                            }`}>
-                            <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
-                              q.correctAnswer === `option${letter}`
-                                ? "bg-emerald-500 text-white"
-                                : "bg-white border border-slate-200 text-slate-400"
-                            }`}>{letter}</span>
-                            {q[`option${letter}`]}
-                            {q.correctAnswer === `option${letter}` && <span className="ml-auto">✓ Correct</span>}
-                          </div>
-                        ))}
+                      <div className="space-y-1.5">
+                        {["A","B","C","D"].map(letter => {
+                          const isCorrect = q.correctAnswer === `option${letter}`;
+                          return (
+                            <div key={letter}
+                              className={`flex items-center gap-2 p-2.5 rounded-xl text-xs border ${
+                                isCorrect
+                                  ? "bg-emerald-500/[0.07] border-emerald-500/20 text-emerald-300 font-semibold"
+                                  : "bg-white/[0.02] border-white/[0.05] text-slate-500"
+                              }`}>
+                              <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${
+                                isCorrect
+                                  ? "bg-emerald-500 text-white"
+                                  : "bg-white/[0.05] border border-white/[0.08] text-slate-600"
+                              }`}>{letter}</span>
+                              <span className="flex-1">{q[`option${letter}`]}</span>
+                              {isCorrect && <span className="text-emerald-400 text-[10px] font-bold">✓ Correct</span>}
+                            </div>
+                          );
+                        })}
                         {q.explanation && (
-                          <div className="mt-2 bg-amber-50 rounded-xl p-2.5">
-                            <p className="text-xs text-amber-700">💡 {q.explanation}</p>
+                          <div className="bg-amber-500/[0.06] border border-amber-500/20 rounded-xl p-2.5">
+                            <p className="text-xs text-amber-400">💡 {q.explanation}</p>
                           </div>
                         )}
                       </div>
@@ -347,10 +399,10 @@ function AdminAptitude() {
                 </div>
               ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

@@ -28,7 +28,7 @@ public class MockInterviewService {
     private final TechnicalMcqRepository         mcqRepo;
     private final AptitudeQuestionRepository     aptRepo;
     private final CodingQuestionRepository       codingRepo;
-    private final GeminiService                  geminiService;
+    private final GroqService groqService;
 
     // ── Get all sets ──
     public List<InterviewSet> getAllSets() {
@@ -207,11 +207,11 @@ public class MockInterviewService {
             try {
 
                 // Fire all Gemini calls simultaneously
-                List<GeminiService.GeminiResult> results =
+                List<GroqService.GroqResult> results =
                         Flux.fromIterable(needsAi)
                                 .flatMap(a ->
                                         Mono.fromCallable(() ->
-                                                geminiService.getFeedbackWithRetry(
+                                                groqService.getFeedbackWithRetry(
                                                         a.getQuestionText(),
                                                         a.getUserAnswer()
                                                 )
@@ -223,7 +223,7 @@ public class MockInterviewService {
                 // Apply results back to answers
                 for (int i = 0; i < needsAi.size(); i++) {
 
-                    GeminiService.GeminiResult ai =
+                    GroqService.GroqResult ai =
                             results.get(i);
 
                     MockAnswer answer =
@@ -256,7 +256,8 @@ public class MockInterviewService {
         session.setSetTitle(set.getTitle());
         session.setCompany(set.getCompany());
         session.setScore(score);
-        session.setTotal(request.getAnswers().size());
+        int total = request.getAnswers() != null ? request.getAnswers().size() : 0;
+        session.setTotal(total);
         session.setMcqScore(mcqScore);
         session.setMcqTotal(mcqTotal);
         session.setTimeTaken(request.getTimeTaken());

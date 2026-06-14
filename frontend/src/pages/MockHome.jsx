@@ -1,248 +1,257 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Clock, Trophy, Target, ChevronRight, Play, RotateCcw, ClipboardList } from "lucide-react";
 import api from "../services/api";
-import Navbar from "../components/Navbar";
 
-const companyColors = {
-  TCS:       "from-blue-500 to-cyan-500",
-  Infosys:   "from-indigo-500 to-blue-500",
-  Wipro:     "from-violet-500 to-purple-500",
-  Cognizant: "from-blue-600 to-indigo-600",
-  Accenture: "from-purple-500 to-violet-500",
-  Amazon:    "from-amber-500 to-orange-500",
-  default:   "from-slate-500 to-slate-700",
+const diffBadge = {
+  Easy:   "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  Medium: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  Hard:   "text-rose-400 bg-rose-500/10 border-rose-500/20",
 };
 
-const difficultyConfig = {
-  Easy:   { color: "text-emerald-600", bg: "bg-emerald-50", dot: "bg-emerald-400" },
-  Medium: { color: "text-amber-600",   bg: "bg-amber-50",   dot: "bg-amber-400"   },
-  Hard:   { color: "text-rose-600",    bg: "bg-rose-50",    dot: "bg-rose-400"    },
+// Company gradient headers
+const companyGradient = (company) => {
+  const map = {
+    TCS:        "from-cyan-600 to-blue-700",
+    Infosys:    "from-blue-600 to-indigo-700",
+    Wipro:      "from-violet-600 to-purple-700",
+    Cognizant:  "from-blue-500 to-cyan-600",
+    Accenture:  "from-purple-600 to-violet-700",
+    Amazon:     "from-orange-500 to-amber-600",
+  };
+  return map[company] || "from-indigo-600 to-violet-700";
 };
 
 function MockHome() {
-  const [sets, setSets]       = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [history, setHistory] = useState([]);
-  const navigate              = useNavigate();
+  const navigate = useNavigate();
+  const userId   = localStorage.getItem("userId");
 
-  useEffect(() => { fetchSets(); fetchHistory(); }, []);
+  const [sets,     setSets]     = useState([]);
+  const [history,  setHistory]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
 
-  const fetchSets = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get("/mock/sets");
-      setSets(res.data);
-    } catch {
-      console.error("Failed to fetch sets");
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    Promise.all([
+      api.get("/mock/sets"),
+      api.get(`/mock/history/${userId}`).catch(() => ({ data: [] })),
+    ]).then(([setsRes, histRes]) => {
+      setSets(setsRes.data);
+      setHistory(histRes.data);
+    }).finally(() => setLoading(false));
+  }, [userId]);
+
+  // Map last attempt per set
+  const lastAttempt = {};
+  history.forEach(h => {
+    if (!lastAttempt[h.setId] || new Date(h.submittedAt) > new Date(lastAttempt[h.setId].submittedAt)) {
+      lastAttempt[h.setId] = h;
     }
-  };
+  });
 
-  const fetchHistory = async () => {
-    try {
-      const userId = localStorage.getItem("userId");
-      const res    = await api.get(`/mock/history/${userId}`);
-      setHistory(res.data);
-    } catch {
-      console.error("History fetch failed");
-    }
-  };
+  // Stats
+  const bestScore = history.length > 0
+    ? history.reduce((best, h) => {
+        const pct = h.score / h.total;
+        return pct > best.pct ? { pct, label: `${h.score}/${h.total}` } : best;
+      }, { pct: 0, label: "—" }).label
+    : "—";
 
-  const formatTime = (sec) => {
-    if (!sec) return "—";
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}m ${s}s`;
-  };
+  if (loading) {
+    return (
+      <div className="space-y-6 pb-16 max-w-[1400px] mx-auto animate-pulse">
+        <div className="h-44 bg-white/[0.04] rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => <div key={i} className="h-64 bg-white/[0.03] rounded-2xl" />)}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
+    <div className="space-y-8 pb-16 max-w-[1400px] mx-auto">
 
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-900 to-violet-900 px-8 pt-10 pb-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">🎯</span>
-            <div>
-              <p className="text-indigo-300 text-xs font-semibold tracking-widest uppercase">PrepForge</p>
-              <h1 className="text-3xl font-black text-white">Mock Interviews</h1>
-            </div>
+      {/* ── Hero banner ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0e1035] via-[#161848] to-[#2b1d58] p-8 border border-white/[0.05]">
+        <div className="absolute -top-12 -right-12 w-60 h-60 bg-indigo-500/10 blur-[80px] pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-purple-500/8 blur-[60px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div>
+            <p className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-2">Placement Preparation</p>
+            <h1 className="text-3xl font-black text-white tracking-tight">Mock Interviews</h1>
+            <p className="text-slate-400 text-sm mt-2 max-w-md leading-relaxed">
+              Simulate real placement drives. Pick a company set and experience the actual interview format.
+            </p>
           </div>
-          <p className="text-indigo-300 text-sm mt-2 max-w-lg">
-            Simulate real placement drives. Pick a company set and experience the actual interview format.
-          </p>
 
           {/* Stats */}
-          <div className="flex gap-4 mt-6 flex-wrap">
+          <div className="flex gap-3 flex-wrap shrink-0">
             {[
-              { label: "Available Sets", value: sets.length,    color: "bg-white/10 text-white"             },
-              { label: "Attempted",      value: history.length, color: "bg-indigo-500/20 text-indigo-300"   },
-              { label: "Best Score",     value: history.length > 0
-                  ? Math.max(...history.map(h => h.score)) + "/" + history[0]?.total
-                  : "—",                                        color: "bg-emerald-500/20 text-emerald-300"  },
+              { label: "Available Sets", value: sets.length,     cls: "border-white/[0.07] text-white bg-white/[0.03]"          },
+              { label: "Attempted",      value: Object.keys(lastAttempt).length, cls: "border-indigo-500/20 text-indigo-400 bg-indigo-500/[0.05]" },
+              { label: "Best Score",     value: bestScore,       cls: "border-emerald-500/20 text-emerald-400 bg-emerald-500/[0.05]" },
             ].map(s => (
-              <div key={s.label} className={`${s.color} rounded-xl px-4 py-2 text-center min-w-[110px]`}>
-                <p className="text-xl font-black">{s.value}</p>
-                <p className="text-[11px] font-medium opacity-80">{s.label}</p>
+              <div key={s.label} className={`border rounded-xl px-5 py-3.5 text-center min-w-[100px] ${s.cls}`}>
+                <p className="text-2xl font-black leading-none">{s.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60 mt-1.5">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-8 py-8">
-
-        {/* Interview Sets */}
-        <div className="mb-10">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-lg font-black text-slate-800">Available Interview Sets</h2>
-              <p className="text-slate-500 text-sm mt-0.5">Pick a company and start your simulation</p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 animate-pulse">
-                  <div className="h-12 bg-slate-100 rounded-xl mb-4" />
-                  <div className="h-4 bg-slate-100 rounded w-3/4 mb-2" />
-                  <div className="h-3 bg-slate-100 rounded w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : sets.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-slate-100">
-              <p className="text-5xl mb-4">📭</p>
-              <h3 className="text-lg font-bold text-slate-700">No interview sets yet</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Ask your admin to create company-specific sets
-              </p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {sets.map(set => {
-                const gradient = companyColors[set.company] || companyColors.default;
-                const diff     = difficultyConfig[set.difficulty] || difficultyConfig.Medium;
-                const attempted = history.filter(h => h.setId === set.id);
-
-                return (
-                  <div key={set.id}
-                    className="bg-white rounded-2xl border border-slate-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden group">
-
-                    {/* Gradient Header */}
-                    <div className={`bg-gradient-to-r ${gradient} p-5`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-white/70 text-xs font-semibold uppercase tracking-wider">
-                            {set.company}
-                          </p>
-                          <h3 className="text-white font-black text-lg mt-0.5">{set.title}</h3>
-                        </div>
-                        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl">
-                          🏢
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-5">
-                      {/* Role */}
-                      <p className="text-sm font-semibold text-slate-700 mb-3">{set.role}</p>
-
-                      {/* Badges */}
-                      <div className="flex items-center gap-2 flex-wrap mb-4">
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full ${diff.bg} ${diff.color}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${diff.dot}`} />
-                          {set.difficulty}
-                        </span>
-                        <span className="text-[11px] bg-slate-50 text-slate-500 border border-slate-200 px-2.5 py-1 rounded-full font-medium">
-                          ⏱ {set.durationMinutes} min
-                        </span>
-                        {attempted.length > 0 && (
-                          <span className="text-[11px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-2.5 py-1 rounded-full font-medium">
-                            ✓ Attempted {attempted.length}x
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Last attempt */}
-                      {attempted.length > 0 && (
-                        <div className="bg-slate-50 rounded-xl p-3 mb-4">
-                          <p className="text-[11px] text-slate-400 font-medium mb-1">Last attempt</p>
-                          <p className="text-sm font-bold text-slate-700">
-                            {attempted[0].score}/{attempted[0].total} correct
-                          </p>
-                          <p className="text-xs text-slate-400">{formatTime(attempted[0].timeTaken)}</p>
-                        </div>
-                      )}
-
-                      {/* Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => navigate(`/mock/interview/${set.id}`)}
-                          className={`flex-1 py-2.5 text-sm font-bold text-white rounded-xl bg-gradient-to-r ${gradient} hover:opacity-90 transition`}
-                        >
-                          {attempted.length > 0 ? "Retry →" : "Start →"}
-                        </button>
-                        {attempted.length > 0 && (
-                          <button
-                            onClick={() => navigate(`/mock/result/${attempted[0].id}`)}
-                            className="px-3 py-2.5 text-sm font-semibold bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition"
-                          >
-                            📋
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+      {/* ── Available Sets ── */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-base font-black text-white">Available Interview Sets</h2>
+          <p className="text-xs text-slate-500 mt-0.5">Pick a company and start your simulation</p>
         </div>
 
-        {/* Recent History */}
-        {history.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-lg font-black text-slate-800">Recent Attempts</h2>
-                <p className="text-slate-500 text-sm mt-0.5">Your past mock interview sessions</p>
-              </div>
-              <button
-                onClick={() => navigate("/mock/history")}
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition"
-              >
-                View All →
-              </button>
-            </div>
+        {sets.length === 0 ? (
+          <div className="text-center py-16 bg-[#080b1c] border border-dashed border-white/[0.06] rounded-2xl">
+            <ClipboardList size={32} className="mx-auto text-slate-700 mb-3" />
+            <p className="text-slate-400 font-medium text-sm">No interview sets available yet</p>
+            <p className="text-slate-600 text-xs mt-1">Check back soon — sets are added regularly</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {sets.map(set => {
+              const attempt = lastAttempt[set.id];
+              const grad    = companyGradient(set.company);
 
-            <div className="space-y-3">
-              {history.slice(0, 3).map(h => (
-                <div key={h.id}
-                  className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between hover:shadow-md transition cursor-pointer"
-                  onClick={() => navigate(`/mock/result/${h.id}`)}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-xl">
-                      🎯
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{h.setTitle}</p>
-                      <p className="text-xs text-slate-400">{h.company} • {new Date(h.createdAt).toLocaleDateString()}</p>
+              return (
+                <div key={set.id}
+                  className="bg-[#080b1c] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-indigo-500/25 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40">
+
+                  {/* Company header gradient */}
+                  <div className={`bg-gradient-to-r ${grad} px-5 py-4 relative overflow-hidden`}>
+                    <div className="absolute inset-0 opacity-20"
+                      style={{ backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+                    <div className="relative z-10 flex items-start justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{set.company}</p>
+                        <h3 className="text-lg font-black text-white tracking-tight mt-0.5">{set.title}</h3>
+                      </div>
+                      {/* Company initial avatar */}
+                      <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center text-white font-black text-base border border-white/20 shrink-0">
+                        {set.company?.charAt(0)}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black text-indigo-600">{h.score}/{h.total}</p>
-                    <p className="text-xs text-slate-400">{formatTime(h.timeTaken)}</p>
+
+                  {/* Card body */}
+                  <div className="p-5">
+                    {/* Role + badges */}
+                    <p className="text-sm font-bold text-slate-300 mb-3">{set.role || "General"}</p>
+                    <div className="flex items-center gap-2 flex-wrap mb-4">
+                      {set.difficulty && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${diffBadge[set.difficulty]}`}>
+                          · {set.difficulty}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-white/[0.04] border border-white/[0.06] px-2 py-0.5 rounded-full">
+                        <Clock size={9}/>{set.durationMinutes} min
+                      </span>
+                      {attempt && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          ✓ Attempted {history.filter(h => h.setId === set.id).length}×
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Last attempt result */}
+                    {attempt && (
+                      <div className="bg-white/[0.03] border border-white/[0.05] rounded-xl p-3 mb-4">
+                        <p className="text-[10px] text-slate-600 uppercase tracking-wider font-bold mb-1">Last attempt</p>
+                        <div className="flex items-baseline justify-between">
+                          <p className="text-sm font-black text-slate-200">
+                            {attempt.score}/{attempt.total} correct
+                          </p>
+                          <p className="text-[10px] text-slate-600">
+                            {Math.floor(attempt.timeTaken / 60)}m {attempt.timeTaken % 60}s
+                          </p>
+                        </div>
+                        {/* Score bar */}
+                        <div className="h-1 bg-white/[0.05] rounded-full mt-2 overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${
+                            attempt.score / attempt.total >= 0.7 ? "bg-emerald-500" :
+                            attempt.score / attempt.total >= 0.4 ? "bg-amber-500" : "bg-rose-500"
+                          }`} style={{ width: `${(attempt.score / attempt.total) * 100}%` }} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
+                      <button onClick={() => navigate(`/mock/interview/${set.id}`)}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 text-white rounded-xl transition-all shadow-md shadow-indigo-500/20 group-hover:shadow-indigo-500/30">
+                        {attempt ? <><RotateCcw size={12}/>Retry</> : <><Play size={12}/>Start</>}
+                      </button>
+                      {attempt && (
+                        <button
+                          onClick={() => navigate(`/mock/result/${attempt.id}`)}
+                          className="px-3 py-2.5 text-xs font-bold bg-white/[0.04] border border-white/[0.07] text-slate-400 hover:bg-white/[0.08] hover:text-slate-200 rounded-xl transition"
+                          title="View last result">
+                          <ClipboardList size={14}/>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         )}
-      </div>
+      </section>
+
+      {/* ── Recent Attempts ── */}
+      {history.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-base font-black text-white">Recent Attempts</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Your past mock interview sessions</p>
+            </div>
+            <button className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium flex items-center gap-1">
+              View all <ChevronRight size={12}/>
+            </button>
+          </div>
+
+          <div className="space-y-2.5">
+            {history.slice(0, 5).map(h => (
+              <div key={h.id}
+                onClick={() => navigate(`/mock/result/${h.id}`)}
+                className="bg-[#080b1c] border border-white/[0.06] hover:border-indigo-500/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer transition-all group hover:-translate-y-px">
+
+                {/* Company dot */}
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${companyGradient(h.company || h.setTitle)} flex items-center justify-center text-white font-black text-sm shrink-0`}>
+                  {(h.company || h.setTitle || "?").charAt(0)}
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-slate-200">{h.setTitle || h.company}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    {h.company || ""}{h.submittedAt ? ` · ${new Date(h.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}` : ""}
+                  </p>
+                </div>
+
+                {/* Score + time */}
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-black ${
+                    h.score / h.total >= 0.7 ? "text-emerald-400" :
+                    h.score / h.total >= 0.4 ? "text-amber-400" : "text-rose-400"
+                  }`}>{h.score}/{h.total}</p>
+                  <p className="text-[10px] text-slate-600">{Math.floor(h.timeTaken / 60)}m {h.timeTaken % 60}s</p>
+                </div>
+
+                <ChevronRight size={14} className="text-slate-700 group-hover:text-slate-500 transition-colors shrink-0" />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }

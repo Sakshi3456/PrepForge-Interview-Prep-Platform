@@ -98,25 +98,20 @@ public class CodingQuestionService {
         CodingQuestion q = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
-        // Null-safe toggle
-        boolean current = q.getIsSolved() != null && q.getIsSolved();
-        q.setIsSolved(!current);
-        CodingQuestion saved = repository.save(q);
-
-        // Update user_coding_progress so dashboard reflects it
         if (userId != null) {
             UserCodingProgress progress =
                     codingProgressRepo
                             .findByUserIdAndQuestionId(userId, id)
                             .orElse(new UserCodingProgress());
 
+            boolean currentlySolved = "SOLVED".equals(progress.getStatus());
             progress.setUserId(userId);
             progress.setQuestionId(id);
-            progress.setStatus(!current ? "SOLVED" : "UNSOLVED");
+            progress.setStatus(currentlySolved ? "UNSOLVED" : "SOLVED");
             codingProgressRepo.save(progress);
         }
 
-        return saved;
+        return q; // return question without modifying shared isSolved field
     }
 
     // ── Similar problems (same topic, different id) ──

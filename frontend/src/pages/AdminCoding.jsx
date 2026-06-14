@@ -1,37 +1,133 @@
 import { useEffect, useState } from "react";
+import { Search, X, CheckCircle2, ChevronDown, ChevronUp, Code2 } from "lucide-react";
 import api from "../services/api";
-import { Link } from "react-router-dom";
+import AdminLayout from "../AdminLayout";
 
-const navItems = [
-  { icon: "📊", label: "Dashboard",          path: "/admin"           },
-  { icon: "📚", label: "Manage Notes",        path: "/admin/notes"     },
-  { icon: "🎤", label: "Interview Questions", path: "/admin/questions" },
-  { icon: "💻", label: "Coding Questions",    path: "/admin/coding"    },
-  { icon: "👥", label: "Manage Users",        path: "/admin/users"     },
-  { icon: "🧮", label: "Aptitude Quiz",       path: "/admin/aptitude"  },
-];
+// ── Constants ─────────────────────────────────────────────────────────────────
+const DIFFICULTIES = ["All", "Basic", "Intermediate", "Hard"];
+const TOPICS       = ["All","Arrays","Strings","Loops","Linked List","Trees","Recursion","DP","Graphs","Backtracking"];
+const LANGUAGES    = ["Java", "Python", "C++"];
+
+const diffBadge = {
+  Basic:        "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  Intermediate: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  Hard:         "text-rose-400 bg-rose-500/10 border-rose-500/20",
+};
+
+// ── Shared input styles — dark theme matching AdminAptitude ───────────────────
+const inputCls  = "w-full px-3.5 py-2.5 text-sm bg-white/[0.03] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/40 transition";
+const labelCls  = "block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1";
+const selectCls = inputCls + " appearance-none";
 
 const emptyForm = {
-  title: "", topic: "", difficulty: "", language: "",
+  title: "", topic: "", difficulty: "", language: "Java",
   problemStatement: "", inputOutput: "", hint: "",
-  approach: "", solution: "", timeComplexity: "",
-  spaceComplexity: "", companyTags: "",
+  approach: "", timeComplexity: "", spaceComplexity: "", companyTags: "",
+  // Multi-language solution fields
+  solutionJava: "", solutionPython: "", solutionCpp: "",
 };
 
-const diffColor = {
-  Basic:        "text-emerald-600 bg-emerald-50",
-  Intermediate: "text-amber-600 bg-amber-50",
-  Hard:         "text-rose-600 bg-rose-50",
+// ── Field components ──────────────────────────────────────────────────────────
+const Field = ({ label, name, placeholder, value, onChange }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    <input name={name} placeholder={placeholder} value={value} onChange={onChange} className={inputCls} />
+  </div>
+);
+
+const TextArea = ({ label, name, placeholder, rows = 3, value, onChange, mono = false }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    <textarea name={name} placeholder={placeholder} rows={rows} value={value} onChange={onChange}
+      className={`${inputCls} resize-none ${mono ? "font-mono text-xs" : ""}`} />
+  </div>
+);
+
+const Select = ({ label, name, options, value, onChange }) => (
+  <div>
+    <label className={labelCls}>{label}</label>
+    <select name={name} value={value} onChange={onChange} className={selectCls}>
+      <option value="" className="bg-[#0d0f28]">Select</option>
+      {options.map(o => <option key={o} value={o} className="bg-[#0d0f28]">{o}</option>)}
+    </select>
+  </div>
+);
+
+// ── Code tab component ────────────────────────────────────────────────────────
+const CodeTabs = ({ form, onChange }) => {
+  const [activeTab, setActiveTab] = useState("Java");
+  const fieldMap = { Java: "solutionJava", Python: "solutionPython", "C++": "solutionCpp" };
+  const placeholders = {
+    Java:   "// Java solution\npublic int[] twoSum(int[] nums, int target) {\n    // ...\n}",
+    Python: "# Python solution\ndef two_sum(nums, target):\n    # ...",
+    "C++":  "// C++ solution\nvector<int> twoSum(vector<int>& nums, int target) {\n    // ...\n}",
+  };
+
+  return (
+    <div>
+      <label className={labelCls}>Solution Code</label>
+      {/* Language tabs */}
+      <div className="flex gap-1 mb-2">
+        {LANGUAGES.map(lang => (
+          <button key={lang} type="button" onClick={() => setActiveTab(lang)}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg border transition-all ${
+              activeTab === lang
+                ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:text-slate-300 hover:bg-white/[0.06]"
+            }`}>
+            {lang}
+          </button>
+        ))}
+        {/* Completeness indicators */}
+        <div className="flex items-center gap-2 ml-3">
+          {LANGUAGES.map(lang => {
+            const hasCode = form[fieldMap[lang]]?.trim().length > 0;
+            return (
+              <div key={lang} className="flex items-center gap-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${hasCode ? "bg-emerald-400" : "bg-white/10"}`} />
+                <span className="text-[10px] text-slate-600">{lang}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      {/* Code editor */}
+      <div className="relative">
+        <div className="absolute top-0 left-0 right-0 flex items-center gap-1.5 px-4 py-2 bg-white/[0.02] border-b border-white/[0.05] rounded-t-xl">
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-500/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/50" />
+          <span className="text-[10px] text-slate-600 ml-2 font-mono">solution.{activeTab === "C++" ? "cpp" : activeTab === "Python" ? "py" : "java"}</span>
+        </div>
+        <textarea
+          name={fieldMap[activeTab]}
+          value={form[fieldMap[activeTab]]}
+          onChange={onChange}
+          placeholder={placeholders[activeTab]}
+          rows={8}
+          className="w-full pt-10 px-4 pb-4 text-xs font-mono bg-[#060810] border border-white/[0.07] text-indigo-300 placeholder-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/30 transition resize-none leading-relaxed"
+        />
+      </div>
+      <p className="text-[10px] text-slate-600 mt-1.5">
+        Add solutions in any or all languages. Green dot = code added.
+      </p>
+    </div>
+  );
 };
 
+// ── Main Component ────────────────────────────────────────────────────────────
 function AdminCoding() {
-  const [questions, setQuestions]         = useState([]);
-  const [form, setForm]                   = useState(emptyForm);
-  const [editId, setEditId]               = useState(null);
-  const [toast, setToast]                 = useState(null);
+  const [questions,     setQuestions]     = useState([]);
+  const [form,          setForm]          = useState(emptyForm);
+  const [editId,        setEditId]        = useState(null);
+  const [toast,         setToast]         = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [searchAdmin, setSearchAdmin]     = useState("");
-  const [expandedId, setExpandedId]       = useState(null);
+  const [search,        setSearch]        = useState("");
+  const [expandedId,    setExpandedId]    = useState(null);
+  const [filterDiff,    setFilterDiff]    = useState("All");
+  const [filterTopic,   setFilterTopic]   = useState("All");
+  const [formOpen,      setFormOpen]      = useState(true);
+  const [activeSolTab,  setActiveSolTab]  = useState("Java");
 
   useEffect(() => { fetchQuestions(); }, []);
 
@@ -41,19 +137,18 @@ function AdminCoding() {
   };
 
   const fetchQuestions = async () => {
-    const res = await api.get("/coding");
-    setQuestions(res.data);
+    try {
+      const res = await api.get("/coding");
+      setQuestions(res.data);
+    } catch { showToast("Failed to load problems", "error"); }
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const saveQuestion = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.problemStatement || !form.difficulty) {
+    if (!form.title || !form.problemStatement || !form.difficulty)
       return showToast("Title, difficulty and problem statement are required", "error");
-    }
     try {
       if (editId) {
         await api.put(`/coding/${editId}`, form);
@@ -62,12 +157,8 @@ function AdminCoding() {
         await api.post("/coding", form);
         showToast("Problem added!");
       }
-      setForm(emptyForm);
-      setEditId(null);
-      fetchQuestions();
-    } catch {
-      showToast("Something went wrong", "error");
-    }
+      setForm(emptyForm); setEditId(null); fetchQuestions();
+    } catch { showToast("Something went wrong", "error"); }
   };
 
   const deleteQuestion = async (id) => {
@@ -82,88 +173,70 @@ function AdminCoding() {
       title:            q.title            || "",
       topic:            q.topic            || "",
       difficulty:       q.difficulty       || "",
-      language:         q.language         || "",
+      language:         q.language         || "Java",
       problemStatement: q.problemStatement || "",
       inputOutput:      q.inputOutput      || "",
       hint:             q.hint             || "",
       approach:         q.approach         || "",
-      solution:         q.solution         || "",
       timeComplexity:   q.timeComplexity   || "",
       spaceComplexity:  q.spaceComplexity  || "",
       companyTags:      q.companyTags      || "",
+      solutionJava:     q.solutionJava     || "",
+      solutionPython:   q.solutionPython   || "",
+      solutionCpp:      q.solutionCpp      || "",
     });
     setEditId(q.id);
+    setFormOpen(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const cancelEdit = () => {
-    setEditId(null);
-    setForm(emptyForm);
-  };
+  const cancelEdit = () => { setEditId(null); setForm(emptyForm); };
 
-  const filtered = questions.filter(q =>
-    q.title.toLowerCase().includes(searchAdmin.toLowerCase()) ||
-    (q.topic && q.topic.toLowerCase().includes(searchAdmin.toLowerCase()))
-  );
+  const filtered = questions.filter(q => {
+    const matchSearch = q.title?.toLowerCase().includes(search.toLowerCase()) ||
+                        q.topic?.toLowerCase().includes(search.toLowerCase());
+    const matchDiff   = filterDiff  === "All" || q.difficulty === filterDiff;
+    const matchTopic  = filterTopic === "All" || q.topic      === filterTopic;
+    return matchSearch && matchDiff && matchTopic;
+  });
 
-  // Reusable field components
-  const Field = ({ label, name, placeholder, type = "text" }) => (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</label>
-      <input name={name} type={type} placeholder={placeholder}
-        value={form[name]} onChange={handleChange}
-        className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 transition" />
-    </div>
-  );
-
-  const TextArea = ({ label, name, placeholder, rows = 4 }) => (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</label>
-      <textarea name={name} placeholder={placeholder} rows={rows}
-        value={form[name]} onChange={handleChange}
-        className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 transition resize-none font-mono" />
-    </div>
-  );
-
-  const Select = ({ label, name, options }) => (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{label}</label>
-      <select name={name} value={form[name]} onChange={handleChange}
-        className="px-3.5 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 transition">
-        <option value="">Select</option>
-        {options.map(o => <option key={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  // Which languages does a question have solutions for?
+  const getSolLanguages = (q) => LANGUAGES.filter(l => {
+    const key = `solution${l === "C++" ? "Cpp" : l}`;
+    return q[key]?.trim().length > 0;
+  });
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <AdminLayout>
 
-      {/* Toast */}
+      {/* ── Toast ── */}
       {toast && (
-        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-medium ${
-          toast.type === "error" ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-xl text-sm font-bold border ${
+          toast.type === "error"
+            ? "bg-[#0d0f28] border-rose-500/30 text-rose-300"
+            : "bg-[#0d0f28] border-emerald-500/30 text-emerald-300"
         }`}>
-          <span>{toast.type === "error" ? "✕" : "✓"}</span> {toast.msg}
+          {toast.type === "error" ? <X size={14}/> : <CheckCircle2 size={14}/>}
+          {toast.msg}
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* ── Delete modal ── */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-            <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-xl">🗑️</span>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+          <div className="bg-[#0d0f28] border border-white/[0.08] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+            <div className="w-12 h-12 bg-rose-500/10 border border-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X size={20} className="text-rose-400" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 text-center">Delete Problem?</h3>
-            <p className="text-sm text-slate-500 text-center mt-1 mb-5">This cannot be undone.</p>
+            <h3 className="text-base font-bold text-white text-center">Delete Problem?</h3>
+            <p className="text-xs text-slate-500 text-center mt-1 mb-5">This cannot be undone.</p>
             <div className="flex gap-3">
               <button onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 text-sm font-medium border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-white/[0.04] border border-white/[0.08] text-slate-400 rounded-xl hover:bg-white/[0.08] transition">
                 Cancel
               </button>
               <button onClick={() => deleteQuestion(deleteConfirm)}
-                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-600 transition">
+                className="flex-1 py-2.5 text-sm font-medium bg-rose-500 text-white rounded-xl hover:bg-rose-400 transition">
                 Delete
               </button>
             </div>
@@ -171,216 +244,311 @@ function AdminCoding() {
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className="w-64 bg-gradient-to-b from-slate-900 to-slate-800 text-white flex flex-col shrink-0 h-screen sticky top-0">
-        <div className="px-6 py-6 border-b border-white/10">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">⚒️</span>
-            <span className="text-xl font-black">PrepForge</span>
-          </div>
-          <span className="text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full tracking-wider uppercase">
-            Admin Panel
-          </span>
+      <div className="p-8 max-w-[1400px] mx-auto space-y-6">
+
+        {/* ── Page header ── */}
+        <div>
+          <h2 className="text-2xl font-black text-white tracking-tight">Coding Questions</h2>
+          <p className="text-xs text-slate-500 mt-1">{questions.length} problems in the bank</p>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-1">
-          {navItems.map(item => (
-            <Link key={item.label} to={item.path}
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-white transition">
-              <span>{item.icon}</span> {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="px-4 py-5 border-t border-white/10">
-          <button onClick={() => { localStorage.clear(); window.location.href = "/"; }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-300 hover:bg-rose-500/20 transition">
-            <span>🚪</span> Logout
+
+        {/* ── FORM — collapsible, full width (matching AdminAptitude pattern) ── */}
+        <div className="bg-[#0d0f28] border border-white/[0.06] rounded-2xl overflow-hidden">
+
+          {/* Form header toggle */}
+          <button onClick={() => setFormOpen(!formOpen)}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-white/[0.02] transition">
+            <div className="flex items-center gap-3">
+              <div className={`w-2 h-2 rounded-full ${editId ? "bg-amber-400" : "bg-indigo-400"}`} />
+              <span className="text-sm font-bold text-slate-200">
+                {editId ? `Editing Problem #${editId}` : "Add New Problem"}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {editId && (
+                <span onClick={(e) => { e.stopPropagation(); cancelEdit(); }}
+                  className="text-xs font-bold text-amber-400 hover:text-amber-300 px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 transition">
+                  Cancel Edit ✕
+                </span>
+              )}
+              {formOpen ? <ChevronUp size={16} className="text-slate-500"/> : <ChevronDown size={16} className="text-slate-500"/>}
+            </div>
           </button>
-        </div>
-      </div>
 
-      {/* Main */}
-      <div className="flex-1 overflow-auto">
+          {/* Form body */}
+          {formOpen && (
+            <form onSubmit={saveQuestion} className="px-6 pb-6 border-t border-white/[0.05] space-y-5 pt-5">
 
-        {/* Top Bar */}
-        <div className="bg-white border-b border-slate-100 px-8 py-4 shadow-sm">
-          <h2 className="text-xl font-black text-slate-800">Manage Coding Problems 💻</h2>
-          <p className="text-slate-500 text-xs mt-0.5">{questions.length} problems in database</p>
-        </div>
-
-        <div className="p-8 grid grid-cols-1 xl:grid-cols-5 gap-8">
-
-          {/* LEFT — Form */}
-          <div className="xl:col-span-2 space-y-4">
-
-            {editId && (
-              <div className="flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                <span className="text-sm font-medium text-amber-700">✏️ Editing problem #{editId}</span>
-                <button onClick={cancelEdit} className="text-xs text-amber-400 hover:text-amber-700">Cancel ✕</button>
-              </div>
-            )}
-
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
-              <h3 className="text-sm font-bold text-slate-700">
-                {editId ? "✏️ Update Problem" : "+ Add New Problem"}
-              </h3>
-
-              <form onSubmit={saveQuestion} className="space-y-4">
-                <Field label="Title *" name="title" placeholder="e.g. Two Sum" />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Select label="Difficulty *" name="difficulty"
-                    options={["Basic","Intermediate","Hard"]} />
-                  <Select label="Language" name="language"
-                    options={["Java","Python","JavaScript"]} />
+              {/* Row 1: Title + Difficulty + Language + Topic */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="md:col-span-2">
+                  <Field label="Title *" name="title" placeholder="e.g. Two Sum"
+                    value={form.title} onChange={handleChange} />
                 </div>
-
+                <Select label="Difficulty *" name="difficulty"
+                  options={["Basic","Intermediate","Hard"]}
+                  value={form.difficulty} onChange={handleChange} />
                 <Select label="Topic" name="topic"
-                  options={["Arrays","Strings","Loops","Linked List","Trees","Recursion","DP","Graphs","Backtracking"]} />
+                  options={["Arrays","Strings","Loops","Linked List","Trees","Recursion","DP","Graphs","Backtracking"]}
+                  value={form.topic} onChange={handleChange} />
+              </div>
 
-                <TextArea label="Problem Statement *" name="problemStatement"
-                  placeholder="Describe the problem..." rows={4} />
+              {/* Row 2: Problem statement */}
+              <TextArea label="Problem Statement *" name="problemStatement"
+                placeholder="Describe the problem clearly..." rows={4}
+                value={form.problemStatement} onChange={handleChange} />
 
+              {/* Row 3: Input/Output + Hint */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <TextArea label="Input / Output Example" name="inputOutput"
-                  placeholder={"Input: [2,7,11,15], target=9\nOutput: [0,1]"} rows={3} />
+                  placeholder={"Input: [2,7,11,15], target=9\nOutput: [0,1]"} rows={3} mono
+                  value={form.inputOutput} onChange={handleChange} />
+                <TextArea label="Hint (optional)" name="hint"
+                  placeholder="Give a small nudge without revealing the answer..." rows={3}
+                  value={form.hint} onChange={handleChange} />
+              </div>
 
-                <TextArea label="Hint" name="hint"
-                  placeholder="Give a small nudge without revealing the answer..." rows={2} />
+              {/* Row 4: Approach */}
+              <TextArea label="Approach (step by step)" name="approach"
+                placeholder={"1. Start with...\n2. Then...\n3. Finally..."} rows={4}
+                value={form.approach} onChange={handleChange} />
 
-                <TextArea label="Approach (Step by step)" name="approach"
-                  placeholder={"1. Start with...\n2. Then...\n3. Finally..."} rows={4} />
+              {/* Row 5: Multi-language code editor */}
+              <CodeTabs form={form} onChange={handleChange} />
 
-                <TextArea label="Solution Code" name="solution"
-                  placeholder="Paste the solution code here..." rows={6} />
-
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Time Complexity" name="timeComplexity" placeholder="O(n)" />
-                  <Field label="Space Complexity" name="spaceComplexity" placeholder="O(1)" />
+              {/* Row 6: Complexity + Company tags */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Field label="Time Complexity" name="timeComplexity" placeholder="O(n)"
+                  value={form.timeComplexity} onChange={handleChange} />
+                <Field label="Space Complexity" name="spaceComplexity" placeholder="O(1)"
+                  value={form.spaceComplexity} onChange={handleChange} />
+                <div className="md:col-span-2">
+                  <Field label="Company Tags (comma separated)" name="companyTags" placeholder="TCS, Amazon, Wipro"
+                    value={form.companyTags} onChange={handleChange} />
                 </div>
+              </div>
 
-                <Field label="Company Tags (comma separated)" name="companyTags"
-                  placeholder="TCS, Amazon, Wipro" />
+              {/* Submit */}
+              <button type="submit"
+                className={`px-8 py-3 rounded-xl text-sm font-bold text-white transition shadow-lg ${
+                  editId
+                    ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 shadow-amber-500/20"
+                    : "bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-400 hover:to-violet-500 shadow-indigo-500/20"
+                }`}>
+                {editId ? "✓ Update Problem" : "+ Add Problem"}
+              </button>
+            </form>
+          )}
+        </div>
 
-                <button type="submit"
-                  className={`w-full py-3 rounded-xl text-sm font-bold text-white transition ${
-                    editId
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-                      : "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
-                  }`}>
-                  {editId ? "✓ Update Problem" : "+ Add Problem"}
-                </button>
-              </form>
+        {/* ── QUESTION BANK ── */}
+        <div className="space-y-4">
+
+          {/* Bank header + search */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-base font-bold text-white">Problem Bank</h3>
+              <p className="text-xs text-slate-500 mt-0.5">{filtered.length} of {questions.length} problems</p>
+            </div>
+            <div className="relative w-full md:w-72">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-600" />
+              <input type="text" placeholder="Search problems..."
+                value={search} onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm bg-[#0d0f28] border border-white/[0.07] text-slate-200 placeholder-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition" />
             </div>
           </div>
 
-          {/* RIGHT — Problems List */}
-          <div className="xl:col-span-3 space-y-4">
+          {/* Difficulty pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            {DIFFICULTIES.map(d => (
+              <button key={d} onClick={() => setFilterDiff(d)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  filterDiff === d
+                    ? d === "All"          ? "bg-slate-500/20 border-slate-500/40 text-slate-300"
+                      : d === "Basic"        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                      : d === "Intermediate" ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                      :                       "bg-rose-500/20 border-rose-500/40 text-rose-300"
+                    : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:bg-white/[0.07] hover:text-slate-300"
+                }`}>
+                {d}
+              </button>
+            ))}
+          </div>
 
-            <div className="relative">
-              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input type="text" placeholder="Search problems..."
-                value={searchAdmin} onChange={e => setSearchAdmin(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 transition shadow-sm" />
+          {/* Topic pills */}
+          <div className="flex gap-1.5 flex-wrap">
+            {TOPICS.map(t => (
+              <button key={t} onClick={() => setFilterTopic(t)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                  filterTopic === t
+                    ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                    : "bg-white/[0.03] border-white/[0.07] text-slate-500 hover:bg-white/[0.07] hover:text-slate-300"
+                }`}>
+                {t}
+              </button>
+            ))}
+            {(filterDiff !== "All" || filterTopic !== "All" || search) && (
+              <button onClick={() => { setFilterDiff("All"); setFilterTopic("All"); setSearch(""); }}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-bold border border-white/[0.07] text-slate-600 hover:text-rose-400 transition ml-1">
+                ✕ Clear
+              </button>
+            )}
+          </div>
+
+          {/* Problem grid — 2 per row matching AdminAptitude */}
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-[#0d0f28] border border-dashed border-white/[0.06] rounded-2xl">
+              <Code2 size={32} className="mx-auto text-slate-700 mb-3" />
+              <p className="text-slate-400 font-medium text-sm">No problems found</p>
+              <p className="text-slate-600 text-xs mt-1">Try adjusting filters or add a new problem above</p>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {filtered.map(q => {
+                const solLangs = getSolLanguages(q);
+                return (
+                  <div key={q.id}
+                    className={`bg-[#0d0f28] rounded-2xl border transition-all duration-200 ${
+                      editId === q.id
+                        ? "border-amber-500/40 shadow-lg shadow-amber-500/5"
+                        : "border-white/[0.06] hover:border-white/[0.10]"
+                    }`}>
+                    <div className="p-4 space-y-2.5">
 
-            <p className="text-xs text-slate-400">{filtered.length} problems</p>
-
-            <div className="space-y-3">
-              {filtered.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
-                  <p className="text-4xl mb-3">📭</p>
-                  <p className="text-slate-500 font-medium">No problems yet</p>
-                  <p className="text-slate-400 text-sm mt-1">Add your first problem using the form</p>
-                </div>
-              ) : filtered.map(q => (
-                <div key={q.id}
-                  className={`bg-white rounded-2xl border transition-all ${
-                    editId === q.id ? "border-amber-400 shadow-lg" : "border-slate-100 hover:shadow-md"
-                  }`}>
-                  <div className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          {q.difficulty && (
-                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${diffColor[q.difficulty]}`}>
-                              {q.difficulty}
-                            </span>
-                          )}
-                          {q.language && (
-                            <span className="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
-                              {q.language}
-                            </span>
-                          )}
-                          {q.topic && (
-                            <span className="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full border border-slate-100">
-                              {q.topic}
-                            </span>
-                          )}
-                          {editId === q.id && (
-                            <span className="text-[10px] bg-amber-100 text-amber-600 font-semibold px-2 py-0.5 rounded-full">Editing</span>
+                      {/* Header */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                            {q.difficulty && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${diffBadge[q.difficulty]}`}>
+                                {q.difficulty}
+                              </span>
+                            )}
+                            {q.topic && (
+                              <span className="text-[10px] font-bold text-slate-500 bg-white/[0.04] border border-white/[0.07] px-2 py-0.5 rounded-full">
+                                {q.topic}
+                              </span>
+                            )}
+                            {/* Language solution indicators */}
+                            {solLangs.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                {solLangs.map(lang => (
+                                  <span key={lang} className="text-[9px] font-bold bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded font-mono">
+                                    {lang}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {editId === q.id && (
+                              <span className="text-[10px] bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold px-2 py-0.5 rounded-full">
+                                Editing
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-slate-200 leading-snug line-clamp-2">{q.title}</p>
+                          {/* Company tags */}
+                          {q.companyTags && (
+                            <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                              {q.companyTags.split(",").map(tag => (
+                                <span key={tag} className="text-[9px] font-bold bg-white/[0.03] border border-white/[0.06] text-slate-500 px-2 py-0.5 rounded-full">
+                                  {tag.trim()}
+                                </span>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        <p className="text-sm font-bold text-slate-800">{q.title}</p>
-                        {q.companyTags && (
-                          <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                            {q.companyTags.split(",").map(tag => (
-                              <span key={tag} className="text-[10px] bg-indigo-50 text-indigo-500 border border-indigo-100 px-2 py-0.5 rounded-full">
-                                {tag.trim()}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                        <div className="flex gap-2 shrink-0">
+                          <button onClick={() => startEdit(q)}
+                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white/[0.04] border border-white/[0.07] text-slate-400 hover:bg-amber-500/10 hover:text-amber-400 hover:border-amber-500/20 transition">
+                            Edit
+                          </button>
+                          <button onClick={() => setDeleteConfirm(q.id)}
+                            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white transition">
+                            Delete
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex gap-2 shrink-0">
-                        <button onClick={() => startEdit(q)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 text-slate-600 hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition">
-                          Edit
-                        </button>
-                        <button onClick={() => setDeleteConfirm(q.id)}
-                          className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition border border-rose-100">
-                          Delete
-                        </button>
-                      </div>
+                      {/* Complexity badges */}
+                      {(q.timeComplexity || q.spaceComplexity) && (
+                        <div className="flex gap-2">
+                          {q.timeComplexity && (
+                            <span className="text-[10px] font-mono bg-violet-500/10 border border-violet-500/20 text-violet-400 px-2 py-0.5 rounded-lg">
+                              T: {q.timeComplexity}
+                            </span>
+                          )}
+                          {q.spaceComplexity && (
+                            <span className="text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-lg">
+                              S: {q.spaceComplexity}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Preview toggle */}
+                      <button onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition flex items-center gap-1">
+                        {expandedId === q.id
+                          ? <><ChevronUp size={12}/>Hide preview</>
+                          : <><ChevronDown size={12}/>Preview</>}
+                      </button>
+
+                      {/* Expanded preview */}
+                      {expandedId === q.id && (
+                        <div className="space-y-3 pt-1">
+
+                          {/* Problem statement */}
+                          <div className="bg-white/[0.02] border border-white/[0.05] rounded-xl p-3">
+                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Problem</p>
+                            <p className="text-xs text-slate-400 leading-relaxed line-clamp-4">{q.problemStatement}</p>
+                          </div>
+
+                          {/* Input/Output */}
+                          {q.inputOutput && (
+                            <div className="bg-[#060810] border border-white/[0.05] rounded-xl p-3">
+                              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Example</p>
+                              <pre className="text-[11px] text-emerald-400 font-mono leading-relaxed">{q.inputOutput}</pre>
+                            </div>
+                          )}
+
+                          {/* Solution tabs — shown only if any solution exists */}
+                          {getSolLanguages(q).length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Solutions</p>
+                              <div className="flex gap-1 mb-2">
+                                {getSolLanguages(q).map(lang => (
+                                  <button key={lang} type="button" onClick={() => setActiveSolTab(lang)}
+                                    className={`px-2.5 py-1 text-[10px] font-bold rounded border transition-all ${
+                                      activeSolTab === lang
+                                        ? "bg-amber-500/20 border-amber-500/40 text-amber-300"
+                                        : "bg-white/[0.03] border-white/[0.07] text-slate-500"
+                                    }`}>
+                                    {lang}
+                                  </button>
+                                ))}
+                              </div>
+                              {getSolLanguages(q).map(lang => {
+                                const key = `solution${lang === "C++" ? "Cpp" : lang}`;
+                                if (lang !== activeSolTab) return null;
+                                return (
+                                  <div key={lang} className="bg-[#060810] border border-white/[0.05] rounded-xl p-3 max-h-40 overflow-y-auto">
+                                    <pre className="text-[11px] text-indigo-300 font-mono leading-relaxed whitespace-pre">{q[key]}</pre>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-
-                    <button
-                      onClick={() => setExpandedId(expandedId === q.id ? null : q.id)}
-                      className="text-xs text-emerald-500 hover:text-emerald-700 font-medium mt-2 transition"
-                    >
-                      {expandedId === q.id ? "Hide preview ↑" : "Preview problem ↓"}
-                    </button>
-
-                    {expandedId === q.id && (
-                      <div className="mt-3 bg-slate-50 rounded-xl p-3">
-                        <p className="text-xs text-slate-600 leading-relaxed line-clamp-4">
-                          {q.problemStatement}
-                        </p>
-                        {(q.timeComplexity || q.spaceComplexity) && (
-                          <div className="flex gap-2 mt-2">
-                            {q.timeComplexity && (
-                              <span className="text-[11px] font-mono bg-violet-50 text-violet-600 px-2 py-0.5 rounded-lg">
-                                T: {q.timeComplexity}
-                              </span>
-                            )}
-                            {q.spaceComplexity && (
-                              <span className="text-[11px] font-mono bg-cyan-50 text-cyan-600 px-2 py-0.5 rounded-lg">
-                                S: {q.spaceComplexity}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 }
 

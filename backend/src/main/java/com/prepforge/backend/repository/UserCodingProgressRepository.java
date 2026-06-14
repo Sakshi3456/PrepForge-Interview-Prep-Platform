@@ -1,4 +1,4 @@
-// UserCodingProgressRepository.java
+
 package com.prepforge.backend.repository;
 
 import com.prepforge.backend.entity.UserCodingProgress;
