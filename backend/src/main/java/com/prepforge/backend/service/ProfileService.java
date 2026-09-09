@@ -6,6 +6,7 @@ import com.prepforge.backend.entity.*;
 import com.prepforge.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import java.time.LocalDate;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -65,7 +66,7 @@ public class ProfileService {
 
         // Streak
         streakRepo.findByUserId(userId).ifPresent(s -> {
-            dto.setCurrentStreak(s.getCurrentStreak());
+            dto.setCurrentStreak(getEffectiveStreak(s));
             dto.setLongestStreak(s.getLongestStreak());
         });
 
@@ -133,6 +134,14 @@ public class ProfileService {
         dto.setRecentActivity(activity.stream().limit(6).toList());
 
         return dto;
+    }
+
+    private int getEffectiveStreak(UserStreak s) {
+        if (s.getLastActiveDate() == null) return 0;
+        LocalDate today = LocalDate.now();
+        boolean stillValid = s.getLastActiveDate().equals(today)
+                || s.getLastActiveDate().equals(today.minusDays(1));
+        return stillValid ? s.getCurrentStreak() : 0;
     }
 
     public User updateProfile(Long userId, UpdateProfileRequest req) {

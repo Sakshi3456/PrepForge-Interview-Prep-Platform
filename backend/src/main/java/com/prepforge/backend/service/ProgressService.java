@@ -100,7 +100,7 @@ public class ProgressService {
         // ── Streak ──
         UserStreak streak = streakRepo.findByUserId(userId)
                 .orElse(new UserStreak(null, userId, 0, 0, null));
-        dto.setCurrentStreak(streak.getCurrentStreak());
+        dto.setCurrentStreak(getEffectiveStreak(streak));
         dto.setLongestStreak(streak.getLongestStreak());
 
         // ── Recommendations — from weakest category ──
@@ -131,6 +131,14 @@ public class ProgressService {
         dto.setRecommendations(recommendations);
 
         return dto;
+    }
+
+    private int getEffectiveStreak(UserStreak streak) {
+        if (streak.getLastActiveDate() == null) return 0;
+        LocalDate today = LocalDate.now();
+        boolean stillValid = streak.getLastActiveDate().equals(today)
+                || streak.getLastActiveDate().equals(today.minusDays(1));
+        return stillValid ? streak.getCurrentStreak() : 0;
     }
 
     // ── Update streak when user practices ──

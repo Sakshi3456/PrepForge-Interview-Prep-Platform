@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState} from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import {
   BookOpen, MessageSquare, Award, FileText,
   Terminal, Video, Bookmark, Brain,
@@ -24,12 +24,10 @@ const getGreeting = () => {
   return "Good Evening 🌙";
 };
 
+
 const toTitleCase = (str = "") =>
   str.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
-// ── FIX 1: Single parseDate — handles both camelCase and snake_case field names
-// Old code had `date: new Date(s.attemptedAt)` inline which broke on null/invalid dates
-// AND parseDate was defined but never used in the blended array
 const parseDate = (s) => {
   const raw = s.attemptedAt || s.attempted_at || s.createdAt || s.created_at || s.submittedAt;
   if (!raw) return new Date(0); // epoch — sorts to bottom, shows "Recently"
@@ -37,10 +35,6 @@ const parseDate = (s) => {
   return isNaN(d.getTime()) ? new Date(0) : d;
 };
 
-// ── FIX 2: Single formatDate — removed the duplicate that was inside the component
-// Old code had TWO formatDate functions: one at module level, one inside Dashboard()
-// The inner one shadowed the outer one but was only used AFTER the blended array
-// was already built with the broken outer one
 const formatDate = (date) => {
   if (!date || isNaN(date.getTime()) || date.getFullYear() < 2000) return "Recently";
   const diffDays = Math.floor((Date.now() - date.getTime()) / 86400000);
@@ -59,10 +53,12 @@ function Dashboard() {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading,        setLoading]        = useState(true);
 
+  const location = useLocation();
+
   useEffect(() => {
-    if (!userId) { navigate("/login"); return; }
-    fetchDashboardData();
-  }, [userId]);
+  if (!userId) { navigate("/login"); return; }
+  fetchDashboardData();
+}, [userId, location.key]);
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -78,33 +74,30 @@ function Dashboard() {
       setProgress(progressRes.data);
       setProfile(profileRes.data);
 
-      // ── FIX 3: Use parseDate() in the blended array instead of `new Date(s.attemptedAt)`
-      // Old: date: new Date(s.attemptedAt)  ← breaks if null or wrong field name
-      // New: date: parseDate(s)             ← handles null, snake_case, camelCase
       const blended = [
         ...aptRes.data.map((s) => ({
           label: `Aptitude — ${s.category || "Quiz"}`,
           score: `${s.score}/${s.total}`,
-          date:  parseDate(s),          // ← FIX: was new Date(s.attemptedAt)
+          date:  parseDate(s),          
           icon:  <Brain size={18} className="text-amber-400" />,
           path:  "/quiz",
         })),
         ...mcqRes.data.map((s) => ({
           label: `Technical MCQ — ${s.category || "MCQ"}`,
           score: `${s.score}/${s.total}`,
-          date:  parseDate(s),          // ← FIX: was new Date(s.attemptedAt)
+          date:  parseDate(s),          
           icon:  <FileText size={18} className="text-cyan-400" />,
           path:  "/mcq",
         })),
         ...mockRes.data.map((s) => ({
           label: `Mock Interview — ${s.company || s.setTitle || "Mock"}`,
           score: `${s.score}/${s.total}`,
-          date:  parseDate(s),          // ← FIX: was new Date(s.createdAt)
+          date:  parseDate(s),          
           icon:  <Video size={18} className="text-violet-400" />,
           path:  `/mock/result/${s.id}`,
         })),
       ]
-        .filter(a => a.date.getTime() > 0)      // remove epoch fallbacks from sort top
+        .filter(a => a.date.getTime() > 0)     
         .sort((a, b) => b.date - a.date)
         .slice(0, 5);
 
