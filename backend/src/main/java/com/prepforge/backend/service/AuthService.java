@@ -44,8 +44,7 @@ public class AuthService {
 
         userRepo.save(user);
 
-        // TODO: uncomment after deployment
-        // emailService.sendVerificationEmail(user.getEmail(), token);
+         emailService.sendVerificationEmail(user.getEmail(), token);
 
         return "Registration successful. You can now log in.";
     }
@@ -87,8 +86,8 @@ public class AuthService {
     }
 
     // ── Verify email ──
-    // TODO: uncomment after deployment
-    /*
+
+
     public String verifyEmail(String token) {
         User user = userRepo.findByVerificationToken(token)
                 .orElseThrow(() ->
@@ -98,7 +97,7 @@ public class AuthService {
         userRepo.save(user);
         return "Email verified successfully. You can now log in.";
     }
-    */
+
 
     // ── Forgot password ──
     public String forgotPassword(String email) {
@@ -118,8 +117,8 @@ public class AuthService {
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepo.save(user);
 
-        // TODO: uncomment after deployment
-        // emailService.sendPasswordResetEmail(user.getEmail(), token);
+
+       emailService.sendPasswordResetEmail(user.getEmail(), token);
 
         return "Password reset link sent to your email.";
     }

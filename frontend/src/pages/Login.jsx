@@ -172,7 +172,10 @@ function Login() {
 
             {/* Google */}
             <button
-              onClick={() => { window.location.href = "http://localhost:8080/oauth2/authorization/google"; }}
+              onClick={() => {
+                const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+                window.location.href = `${backendUrl}/oauth2/authorization/google`;
+              }}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-sm font-semibold text-slate-300 hover:bg-white/[0.08] hover:border-white/20 transition-all mb-4">
               <GoogleIcon />
               Continue with Google

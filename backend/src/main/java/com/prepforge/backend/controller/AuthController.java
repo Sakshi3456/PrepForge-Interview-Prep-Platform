@@ -42,7 +42,7 @@ public class AuthController {
         }
     }
 
-   /* @GetMapping("/verify-email")
+    @GetMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(
             @RequestParam String token) {
         try {
@@ -52,7 +52,7 @@ public class AuthController {
             return ResponseEntity.badRequest()
                     .body(e.getMessage());
         }
-    }*/
+    }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(
