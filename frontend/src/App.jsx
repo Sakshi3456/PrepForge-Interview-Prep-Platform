@@ -40,6 +40,8 @@ function App() {
         <Route path="/"         element={<HomePage />} />
         <Route path="/login"    element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password"  element={<ForgotPassword />} />
+        <Route path="/reset-password"   element={<ResetPassword />}  />
 
         <Route element={<Layout />}>
         {/* User Protected */}
@@ -56,8 +58,6 @@ function App() {
         <Route path="/mock/history"            element={<ProtectedRoute><MockHistory /></ProtectedRoute>} />
         <Route path="/progress"   element={<ProtectedRoute><Progress /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/forgot-password"  element={<ForgotPassword />} />
-        <Route path="/reset-password"   element={<ResetPassword />}  />
         <Route path="/oauth2/callback"  element={<OAuth2Callback />} />
         <Route path="/verify-email"     element={<VerifyEmail />}    />
         </Route>
